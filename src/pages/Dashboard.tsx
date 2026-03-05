@@ -10,14 +10,14 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { useClients } from "../hooks/useClients";
+import { useClientMetrics } from "../hooks/useClientMetrics";
 import { getAlerts } from "../lib/api";
-import { generateInsights } from "../lib/adherence";
 import { AdherenceBarChart } from "../components/Charts";
 import ClientCard from "../components/ClientCard";
 import InsightCard from "../components/InsightCard";
 import AlertsPanel from "../components/AlertsPanel";
 import type { Alert } from "../types";
+import type { Insight } from "../lib/types";
 
 function StatCard({
   label,
@@ -69,7 +69,7 @@ function LoadingSkeleton() {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { clients, loading, error, refresh } = useClients(user?.id ?? "");
+  const { clients, loading, error, refresh } = useClientMetrics(user?.id ?? "");
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [alertsLoading, setAlertsLoading] = useState(true);
 
@@ -98,7 +98,42 @@ export default function Dashboard() {
     return { total: clients.length, avg, atRisk, critical };
   }, [clients]);
 
-  const insights = useMemo(() => generateInsights(clients), [clients]);
+  const insights = useMemo<Insight[]>(
+    () =>
+      clients
+        .map((client) => {
+          const score = client.adherenceScore ?? 0;
+          if (score < 50) {
+            return {
+              type: "critical" as const,
+              title: "Critical Alert",
+              message: `${client.name} is below 50% adherence and needs immediate support.`,
+              client_id: client.id,
+              client_name: client.name,
+            };
+          }
+
+          if (score < 70) {
+            return {
+              type: "warning" as const,
+              title: "At Risk",
+              message: `${client.name} is in the 50–69% adherence range and may need intervention.`,
+              client_id: client.id,
+              client_name: client.name,
+            };
+          }
+
+          return {
+            type: "success" as const,
+            title: "On Track",
+            message: `${client.name} is at or above 70% adherence. Keep current momentum going.`,
+            client_id: client.id,
+            client_name: client.name,
+          };
+        })
+        .slice(0, 6),
+    [clients]
+  );
 
   const topClients = useMemo(
     () =>

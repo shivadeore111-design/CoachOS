@@ -22,7 +22,6 @@ import {
   getAdherenceFromWorkouts,
   calculateStreak,
   getMomentumTrend,
-  getRiskLevel,
   getWeeklyAdherenceData,
 } from "../lib/adherence";
 import { createAlert } from "../lib/api";
@@ -82,7 +81,7 @@ export default function ClientProfile() {
     const selectedProgram = client.program ?? null;
     const weeklyTarget = selectedProgram?.weekly_target ?? 3;
     const score = getAdherenceFromWorkouts(workouts, weeklyTarget);
-    const riskLevel = getRiskLevel(score);
+    const riskLevel = score < 40 ? "critical" : score < 70 ? "risk" : "good";
     const streak = calculateStreak(workouts);
     const momentum = getMomentumTrend(workouts, weeklyTarget);
     return { ...client, adherenceScore: score, riskLevel, streak, momentum, program: selectedProgram ?? undefined, workouts };

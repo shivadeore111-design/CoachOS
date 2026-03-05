@@ -5,7 +5,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { getClients } from "../lib/api";
-import { getAdherenceFromWorkouts, calculateStreak, getMomentumTrend, getRiskLevel } from "../lib/adherence";
+import { getAdherenceFromWorkouts, calculateStreak, getMomentumTrend } from "../lib/adherence";
 import type { Client } from "../lib/types";
 
 interface UseClientsResult {
@@ -41,7 +41,7 @@ export function useClients(coachId: string): UseClientsResult {
       const workouts = c.workouts ?? [];
       const weeklyTarget = c.program?.weekly_target ?? 3;
       const adherenceScore = getAdherenceFromWorkouts(workouts, weeklyTarget);
-      const riskLevel = getRiskLevel(adherenceScore);
+      const riskLevel = adherenceScore < 40 ? "critical" : adherenceScore < 70 ? "risk" : "good";
       const streak = calculateStreak(workouts);
       const momentum = getMomentumTrend(workouts, weeklyTarget);
       return { ...c, adherenceScore, riskLevel, streak, momentum };
