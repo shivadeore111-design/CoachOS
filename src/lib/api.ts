@@ -72,7 +72,7 @@ export async function getClientById(
     .select(
       `
       *,
-      program:programs(*)
+      program:programs!clients_program_id_fkey(*)
     `
     )
     .eq("id", clientId)
@@ -98,7 +98,7 @@ export async function updateClientProgram(
     .select(
       `
       *,
-      program:programs(*)
+      program:programs!clients_program_id_fkey(*)
     `
     )
     .single();
