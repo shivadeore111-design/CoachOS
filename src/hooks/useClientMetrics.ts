@@ -1,60 +1,23 @@
-import { useEffect, useState, useCallback } from "react";
-import { supabase } from "../lib/supabase";
+import { useCallback, useEffect, useState } from "react";
 import { getClientMetrics } from "../lib/metrics";
-import type { Client } from "../lib/types";
 import type { ClientMetrics } from "../types/clientMetrics";
 
 interface UseClientMetricsResult {
-  clients: Client[];
+  clients: ClientMetrics[];
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
 }
 
-function toClient(metric: ClientMetrics): Client {
-  return {
-    id: metric.client_id,
-    coach_id: metric.coach_id,
-    program_id: metric.program_id,
-    name: metric.name,
-    goal: metric.goal,
-    created_at: "",
-    adherenceScore: metric.adherence,
-    riskLevel:
-      metric.status === "critical"
-        ? "critical"
-        : metric.status === "at_risk"
-          ? "risk"
-          : "good",
-    workouts: [
-      ...Array.from({ length: metric.completed_sessions }, (_, i) => ({
-        id: `cm-completed-${metric.client_id}-${i}`,
-        client_id: metric.client_id,
-        date: "",
-        status: "completed" as const,
-        created_at: "",
-      })),
-      ...Array.from({ length: metric.missed_sessions }, (_, i) => ({
-        id: `cm-missed-${metric.client_id}-${i}`,
-        client_id: metric.client_id,
-        date: "",
-        status: "missed" as const,
-        created_at: "",
-      })),
-    ],
-    streak: 0,
-    momentum: "stable",
-  };
-}
-
 export function useClientMetrics(coachId: string): UseClientMetricsResult {
-  const [clients, setClients] = useState<Client[]>([]);
+  const [clients, setClients] = useState<ClientMetrics[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const refresh = useCallback(async () => {
     if (!coachId) {
       setClients([]);
+      setError(null);
       setLoading(false);
       return;
     }
@@ -64,8 +27,9 @@ export function useClientMetrics(coachId: string): UseClientMetricsResult {
 
     try {
       const data = await getClientMetrics(coachId);
-      setClients(data.map(toClient));
+      setClients(data);
     } catch (err) {
+      console.error("Metrics load error:", err);
       setError(err instanceof Error ? err.message : "Failed to load metrics");
     } finally {
       setLoading(false);
@@ -73,27 +37,8 @@ export function useClientMetrics(coachId: string): UseClientMetricsResult {
   }, [coachId]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    void refresh();
+  }, [refresh]);
 
-  useEffect(() => {
-    if (!coachId) return;
-
-    const channel = supabase
-      .channel(`client-metrics-${coachId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "workouts" },
-        () => {
-          load();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [coachId, load]);
-
-  return { clients, loading, error, refresh: load };
+  return { clients, loading, error, refresh };
 }
