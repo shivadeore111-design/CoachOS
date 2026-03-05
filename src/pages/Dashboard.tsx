@@ -17,6 +17,8 @@ import ClientCard from "../components/ClientCard";
 import InsightCard from "../components/InsightCard";
 import AlertsPanel from "../components/AlertsPanel";
 import type { Alert } from "../types";
+import type { Client } from "../lib/types";
+import type { ClientMetrics } from "../types/clientMetrics";
 import type { Insight } from "../lib/types";
 
 function StatCard({
@@ -73,6 +75,27 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [alertsLoading, setAlertsLoading] = useState(true);
 
+  const toClient = useCallback((metric: ClientMetrics): Client => {
+    return {
+      id: metric.client_id,
+      coach_id: metric.coach_id,
+      program_id: metric.program_id,
+      name: metric.name,
+      goal: metric.goal,
+      created_at: "",
+      adherenceScore: metric.adherence,
+      riskLevel:
+        metric.status === "critical"
+          ? "critical"
+          : metric.status === "at_risk"
+            ? "risk"
+            : "good",
+      workouts: [],
+      streak: 0,
+      momentum: "stable",
+    };
+  }, []);
+
   // Load alerts
   const loadAlerts = useCallback(async () => {
     if (!user?.id) return;
@@ -90,11 +113,11 @@ export default function Dashboard() {
     if (clients.length === 0)
       return { total: 0, avg: 0, atRisk: 0, critical: 0 };
     const avg = Math.round(
-      clients.reduce((sum, c) => sum + (c.adherenceScore ?? 0), 0) /
+      clients.reduce((sum, c) => sum + c.adherence, 0) /
         clients.length
     );
-    const atRisk = clients.filter((c) => c.riskLevel === "risk").length;
-    const critical = clients.filter((c) => c.riskLevel === "critical").length;
+    const atRisk = clients.filter((c) => c.status === "at_risk").length;
+    const critical = clients.filter((c) => c.status === "critical").length;
     return { total: clients.length, avg, atRisk, critical };
   }, [clients]);
 
@@ -102,13 +125,13 @@ export default function Dashboard() {
     () =>
       clients
         .map((client) => {
-          const score = client.adherenceScore ?? 0;
+          const score = client.adherence;
           if (score < 50) {
             return {
               type: "critical" as const,
               title: "Critical Alert",
               message: `${client.name} is below 50% adherence and needs immediate support.`,
-              client_id: client.id,
+              client_id: client.client_id,
               client_name: client.name,
             };
           }
@@ -118,7 +141,7 @@ export default function Dashboard() {
               type: "warning" as const,
               title: "At Risk",
               message: `${client.name} is in the 50–69% adherence range and may need intervention.`,
-              client_id: client.id,
+              client_id: client.client_id,
               client_name: client.name,
             };
           }
@@ -127,7 +150,7 @@ export default function Dashboard() {
             type: "success" as const,
             title: "On Track",
             message: `${client.name} is at or above 70% adherence. Keep current momentum going.`,
-            client_id: client.id,
+            client_id: client.client_id,
             client_name: client.name,
           };
         })
@@ -135,22 +158,26 @@ export default function Dashboard() {
     [clients]
   );
 
-  const topClients = useMemo(
+  const topClients = useMemo<Client[]>(
     () =>
       [...clients]
-        .sort((a, b) => (b.adherenceScore ?? 0) - (a.adherenceScore ?? 0))
-        .slice(0, 4),
-    [clients]
+        .sort((a, b) => b.adherence - a.adherence)
+        .slice(0, 4)
+        .map(toClient),
+    [clients, toClient]
   );
 
-  const atRiskClients = useMemo(
+  const atRiskClients = useMemo<Client[]>(
     () =>
       [...clients]
-        .filter((c) => c.riskLevel !== "good")
-        .sort((a, b) => (a.adherenceScore ?? 0) - (b.adherenceScore ?? 0))
-        .slice(0, 4),
-    [clients]
+        .filter((c) => c.status !== "on_track")
+        .sort((a, b) => a.adherence - b.adherence)
+        .slice(0, 4)
+        .map(toClient),
+    [clients, toClient]
   );
+
+  const chartClients = useMemo(() => clients.map(toClient), [clients, toClient]);
 
   // Derive display name
   const coachFirstName =
@@ -291,7 +318,7 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <div className="h-64">
-                  <AdherenceBarChart clients={clients} />
+                  <AdherenceBarChart clients={chartClients} />
                 </div>
               )}
             </div>

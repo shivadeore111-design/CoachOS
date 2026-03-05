@@ -28,6 +28,29 @@ left join workouts w
  and w.date >= current_date - interval '30 days'
 group by c.id, c.name, c.goal, c.program_id, c.coach_id;
 
+grant select on client_metrics to anon;
+grant select on client_metrics to authenticated;
+
+do $$
+begin
+  if exists (
+    select 1
+    from pg_class cls
+    join pg_namespace nsp on nsp.oid = cls.relnamespace
+    where nsp.nspname = 'public'
+      and cls.relname = 'client_metrics'
+      and cls.relkind in ('r', 'p')
+  ) and not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'client_metrics'
+      and policyname = 'Allow coaches to read metrics'
+  ) then
+    execute 'create policy "Allow coaches to read metrics" on public.client_metrics for select using (true)';
+  end if;
+end $$;
+
 create index if not exists idx_workouts_client
   on workouts (client_id);
 

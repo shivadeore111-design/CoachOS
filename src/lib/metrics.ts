@@ -7,7 +7,10 @@ export async function getClientMetrics(coachId: string): Promise<ClientMetrics[]
     .select("*")
     .eq("coach_id", coachId);
 
-  if (error) throw error;
+  if (error) {
+    console.error("Metrics load error:", error);
+    throw error;
+  }
 
   return (data ?? []) as ClientMetrics[];
 }
