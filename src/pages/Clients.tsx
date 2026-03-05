@@ -1,12 +1,13 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { Search, Plus, SlidersHorizontal, Users, RefreshCw } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useClients } from "../hooks/useClients";
-import { createClient, createProgram } from "../lib/api";
+import { createClient, createProgram, getPrograms, updateClientProgram } from "../lib/api";
 import ClientCard from "../components/ClientCard";
 import AddClientModal from "../components/AddClientModal";
 import toast from "react-hot-toast";
 import type { RiskLevel } from "../lib/types";
+import type { Program } from "../lib/types";
 
 function SkeletonCard() {
   return (
@@ -34,6 +35,16 @@ export default function Clients() {
   const [filter, setFilter] = useState<"all" | RiskLevel>("all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [sortBy, setSortBy] = useState<"name" | "score" | "streak">("score");
+  const [programs, setPrograms] = useState<Program[]>([]);
+
+  useEffect(() => {
+    const loadPrograms = async () => {
+      if (!showAddModal) return;
+      const res = await getPrograms();
+      if (res.data) setPrograms(res.data);
+    };
+    loadPrograms();
+  }, [showAddModal]);
 
   const filtered = useMemo(() => {
     return clients
@@ -70,6 +81,7 @@ export default function Clients() {
       programName: string;
       programType: string;
       weeklyTarget: number;
+      programId?: string;
     }) => {
       if (!user?.id) return;
 
@@ -88,19 +100,29 @@ export default function Clients() {
         return;
       }
 
-      // 2. Create program for the client
-      const programResult = await createProgram({
-        client_id: clientResult.data.id,
-        name: form.programName.trim() || `${form.name}'s Program`,
-        weekly_target: form.weeklyTarget,
-        duration_weeks: 12,
-        type: form.programType as Parameters<typeof createProgram>[0]["type"],
-      });
-
-      if (programResult.error) {
-        toast.error("Client added but program creation failed", { id: toastId });
+      if (form.programId) {
+        const assignResult = await updateClientProgram(clientResult.data.id, form.programId);
+        if (assignResult.error) {
+          toast.error("Client added but program assignment failed", { id: toastId });
+        } else {
+          toast.success(`${form.name} added successfully! 🎉`, { id: toastId });
+        }
       } else {
-        toast.success(`${form.name} added successfully! 🎉`, { id: toastId });
+        // 2. Create a fresh program for the client if none was selected
+        const programResult = await createProgram({
+          client_id: clientResult.data.id,
+          name: form.programName.trim() || `${form.name}'s Program`,
+          weekly_target: form.weeklyTarget,
+          duration_weeks: 12,
+          type: form.programType as Parameters<typeof createProgram>[0]["type"],
+        });
+
+        if (programResult.error || !programResult.data) {
+          toast.error("Client added but program creation failed", { id: toastId });
+        } else {
+          await updateClientProgram(clientResult.data.id, programResult.data.id);
+          toast.success(`${form.name} added successfully! 🎉`, { id: toastId });
+        }
       }
 
       setShowAddModal(false);
@@ -250,6 +272,7 @@ export default function Clients() {
         <AddClientModal
           onClose={() => setShowAddModal(false)}
           onSubmit={handleAddClient}
+          programs={programs}
         />
       )}
     </div>

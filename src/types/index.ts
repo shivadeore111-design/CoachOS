@@ -10,6 +10,7 @@ export interface Coach {
 export interface Client {
   id: string;
   coach_id: string;
+  program_id?: string | null;
   name: string;
   goal: string;
   email?: string;
@@ -27,7 +28,7 @@ export interface Client {
 
 export interface Program {
   id: string;
-  client_id: string;
+  client_id?: string;
   name: string;
   weekly_target: number;
   duration_weeks: number;

@@ -69,12 +69,53 @@ export async function getClientById(
   }
   const { data, error } = await supabase
     .from("clients")
-    .select("*")
+    .select(
+      `
+      *,
+      program:programs(*)
+    `
+    )
     .eq("id", clientId)
     .eq("coach_id", coachId)
     .single();
   if (error) return err(error.message);
   return ok(data as Client);
+}
+
+export async function updateClientProgram(
+  clientId: string,
+  programId: string | null
+): Promise<ApiResult<Client>> {
+  if (!isSupabaseConfigured) {
+    const client = mockClients.find((c) => c.id === clientId);
+    if (!client) return err("Client not found");
+    return ok({ ...client, program_id: programId });
+  }
+  const { data, error } = await supabase
+    .from("clients")
+    .update({ program_id: programId })
+    .eq("id", clientId)
+    .select(
+      `
+      *,
+      program:programs(*)
+    `
+    )
+    .single();
+  if (error) return err(error.message);
+  return ok(data as Client);
+}
+
+export async function getPrograms(): Promise<ApiResult<Program[]>> {
+  if (!isSupabaseConfigured) {
+    return ok(mockClients.map((c) => c.program).filter(Boolean) as Program[]);
+  }
+  const { data, error } = await supabase
+    .from("programs")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) return err(error.message);
+  return ok((data ?? []) as Program[]);
 }
 
 export async function createClient(
