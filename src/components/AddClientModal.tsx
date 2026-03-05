@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { X, User, Target, Dumbbell } from "lucide-react";
-import type { ProgramType } from "../lib/types";
+import type { Program, ProgramType } from "../lib/types";
 
 interface ClientForm {
   name: string;
@@ -9,14 +9,16 @@ interface ClientForm {
   programName: string;
   programType: string;
   weeklyTarget: number;
+  programId: string;
 }
 
 interface AddClientModalProps {
   onClose: () => void;
   onSubmit?: (form: ClientForm) => Promise<void>;
+  programs?: Program[];
 }
 
-export default function AddClientModal({ onClose, onSubmit }: AddClientModalProps) {
+export default function AddClientModal({ onClose, onSubmit, programs = [] }: AddClientModalProps) {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState<ClientForm>({
@@ -26,6 +28,7 @@ export default function AddClientModal({ onClose, onSubmit }: AddClientModalProp
     programName: "",
     programType: "strength",
     weeklyTarget: 3,
+    programId: "",
   });
 
   const handleSubmit = async () => {
@@ -123,13 +126,32 @@ export default function AddClientModal({ onClose, onSubmit }: AddClientModalProp
               </div>
               <div>
                 <label className="text-xs text-slate-500 font-medium block mb-1.5">
+                  Assign Existing Program
+                </label>
+                <select
+                  value={form.programId}
+                  onChange={(e) => setForm({ ...form, programId: e.target.value })}
+                  className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none bg-white"
+                >
+                  <option value="">Assign Program</option>
+                  {programs.map((program) => (
+                    <option key={program.id} value={program.id}>
+                      {program.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-500 font-medium block mb-1.5">
                   Program Name
                 </label>
                 <input
                   value={form.programName}
                   onChange={(e) => setForm({ ...form, programName: e.target.value })}
+                  disabled={!!form.programId}
                   placeholder={`e.g. ${form.name || "Client"}'s 12-Week Plan`}
-                  className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400"
+                  className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 disabled:bg-slate-50 disabled:text-slate-400"
                 />
               </div>
               <div>
@@ -141,6 +163,7 @@ export default function AddClientModal({ onClose, onSubmit }: AddClientModalProp
                   onChange={(e) =>
                     setForm({ ...form, programType: e.target.value as ProgramType })
                   }
+                  disabled={!!form.programId}
                   className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none bg-white"
                 >
                   <option value="strength">Strength Training</option>
@@ -165,6 +188,7 @@ export default function AddClientModal({ onClose, onSubmit }: AddClientModalProp
                   onChange={(e) =>
                     setForm({ ...form, weeklyTarget: parseInt(e.target.value) })
                   }
+                  disabled={!!form.programId}
                   className="w-full accent-emerald-500"
                 />
                 <div className="flex justify-between text-xs text-slate-300 mt-1">
@@ -181,10 +205,15 @@ export default function AddClientModal({ onClose, onSubmit }: AddClientModalProp
                 </div>
                 <p className="text-xs text-slate-500">
                   {form.name || "Client"} ·{" "}
-                  {form.programName || `${form.name || "Client"}'s Program`}
+                  {form.programId
+                    ? programs.find((program) => program.id === form.programId)?.name ||
+                      "Assigned Program"
+                    : form.programName || `${form.name || "Client"}'s Program`}
                 </p>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  {form.weeklyTarget} sessions/week · {form.programType}
+                  {form.programId
+                    ? "Using existing program"
+                    : `${form.weeklyTarget} sessions/week · ${form.programType}`}
                 </p>
               </div>
             </div>

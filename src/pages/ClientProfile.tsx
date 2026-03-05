@@ -14,8 +14,9 @@ import { useAuth } from "../context/AuthContext";
 import {
   getClientById,
   getWorkouts,
-  getProgram,
+  getPrograms,
   logWorkout,
+  updateClientProgram,
 } from "../lib/api";
 import {
   getAdherenceFromWorkouts,
@@ -41,7 +42,7 @@ export default function ClientProfile() {
 
   const [client, setClient] = useState<Client | null>(null);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
-  const [program, setProgram] = useState<Program | null>(null);
+  const [programs, setPrograms] = useState<Program[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"overview" | "workouts" | "program">("overview");
 
@@ -58,15 +59,15 @@ export default function ClientProfile() {
     if (!id || !user?.id) return;
     setLoading(true);
 
-    const [clientRes, workoutsRes, programRes] = await Promise.all([
+    const [clientRes, workoutsRes, programsRes] = await Promise.all([
       getClientById(id, user.id),
       getWorkouts(id),
-      getProgram(id),
+      getPrograms(),
     ]);
 
     if (clientRes.data) setClient(clientRes.data);
     if (workoutsRes.data) setWorkouts(workoutsRes.data);
-    if (programRes.data) setProgram(programRes.data);
+    if (programsRes.data) setPrograms(programsRes.data);
 
     setLoading(false);
   }, [id, user?.id]);
@@ -78,13 +79,14 @@ export default function ClientProfile() {
   // Derived stats
   const enrichedClient = useMemo(() => {
     if (!client) return null;
-    const weeklyTarget = program?.weekly_target ?? 3;
+    const selectedProgram = client.program ?? null;
+    const weeklyTarget = selectedProgram?.weekly_target ?? 3;
     const score = getAdherenceFromWorkouts(workouts, weeklyTarget);
     const riskLevel = getRiskLevel(score);
     const streak = calculateStreak(workouts);
     const momentum = getMomentumTrend(workouts, weeklyTarget);
-    return { ...client, adherenceScore: score, riskLevel, streak, momentum, program: program ?? undefined, workouts };
-  }, [client, workouts, program]);
+    return { ...client, adherenceScore: score, riskLevel, streak, momentum, program: selectedProgram ?? undefined, workouts };
+  }, [client, workouts]);
 
   const completedCount = useMemo(
     () => workouts.filter((w) => w.status === "completed").length,
@@ -96,8 +98,22 @@ export default function ClientProfile() {
   );
 
   const weeklyData = useMemo(
-    () => getWeeklyAdherenceData(workouts, program?.weekly_target ?? 3),
-    [workouts, program]
+    () => getWeeklyAdherenceData(workouts, client?.program?.weekly_target ?? 3),
+    [workouts, client?.program?.weekly_target]
+  );
+
+  const handleAssignProgram = useCallback(
+    async (programId: string) => {
+      if (!client) return;
+      const result = await updateClientProgram(client.id, programId || null);
+      if (result.error || !result.data) {
+        toast.error("Failed to assign program");
+        return;
+      }
+      setClient(result.data);
+      toast.success(programId ? "Program assigned" : "Program removed");
+    },
+    [client]
   );
 
   const handleLogWorkout = useCallback(async () => {
@@ -201,6 +217,9 @@ export default function ClientProfile() {
                 <RiskBadge level={enrichedClient.riskLevel!} />
               </div>
               <p className="text-sm text-slate-400 mt-0.5">{enrichedClient.goal}</p>
+              <p className="text-xs text-slate-500 mt-1">
+                Program: {enrichedClient.program?.name || "No program assigned"}
+              </p>
               <p className="text-xs text-slate-300 mt-1">
                 Client since {formatDate(enrichedClient.created_at)}
               </p>
@@ -349,6 +368,24 @@ export default function ClientProfile() {
         )}
 
         {/* Stats Row */}
+        <div className="bg-white rounded-2xl border border-slate-100 p-4">
+          <label className="text-xs text-slate-500 font-medium block mb-1.5">
+            Program Assignment
+          </label>
+          <select
+            value={client?.program_id || ""}
+            onChange={(e) => handleAssignProgram(e.target.value)}
+            className="w-full max-w-sm px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none bg-white"
+          >
+            <option value="">Assign Program</option>
+            {programs.map((program) => (
+              <option key={program.id} value={program.id}>
+                {program.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="grid grid-cols-4 gap-4">
           <div className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center gap-3">
             <AdherenceScore score={enrichedClient.adherenceScore!} size="md" />
@@ -432,34 +469,34 @@ export default function ClientProfile() {
               </div>
             </div>
             <div className="space-y-4">
-              {program && (
+              {enrichedClient.program && (
                 <div className="bg-white rounded-2xl border border-slate-100 p-5">
                   <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
                     <Target size={14} className="text-emerald-500" />
                     Program
                   </h3>
-                  <p className="text-sm font-medium text-slate-700">{program.name}</p>
+                  <p className="text-sm font-medium text-slate-700">{enrichedClient.program.name}</p>
                   <div className="mt-3 space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-slate-400">Type</span>
                       <span
                         className={`text-xs font-medium px-2 py-0.5 rounded-full ${getProgramTypeColor(
-                          program.type
+                          enrichedClient.program.type
                         )}`}
                       >
-                        {program.type.replace("_", " ")}
+                        {enrichedClient.program.type.replace("_", " ")}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-slate-400">Weekly Target</span>
                       <span className="text-xs font-semibold text-slate-700">
-                        {program.weekly_target}x / week
+                        {enrichedClient.program.weekly_target}x / week
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-slate-400">Duration</span>
                       <span className="text-xs font-semibold text-slate-700">
-                        {program.duration_weeks} weeks
+                        {enrichedClient.program.duration_weeks} weeks
                       </span>
                     </div>
                   </div>
@@ -509,41 +546,41 @@ export default function ClientProfile() {
 
         {activeTab === "program" && (
           <div className="grid grid-cols-2 gap-4">
-            {program ? (
+            {enrichedClient.program ? (
               <>
                 <div className="bg-white rounded-2xl border border-slate-100 p-5">
                   <h3 className="text-sm font-semibold text-slate-800 mb-4">Program Details</h3>
                   <div className="space-y-3">
                     <div>
                       <p className="text-xs text-slate-400 mb-1">Program Name</p>
-                      <p className="text-sm font-medium text-slate-700">{program.name}</p>
+                      <p className="text-sm font-medium text-slate-700">{enrichedClient.program.name}</p>
                     </div>
                     <div>
                       <p className="text-xs text-slate-400 mb-1">Type</p>
                       <span
                         className={`text-xs font-medium px-2.5 py-1 rounded-full ${getProgramTypeColor(
-                          program.type
+                          enrichedClient.program.type
                         )}`}
                       >
-                        {program.type.replace("_", " ")}
+                        {enrichedClient.program.type.replace("_", " ")}
                       </span>
                     </div>
                     <div>
                       <p className="text-xs text-slate-400 mb-1">Weekly Target</p>
                       <p className="text-sm font-semibold text-slate-700">
-                        {program.weekly_target} sessions per week
+                        {enrichedClient.program.weekly_target} sessions per week
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-slate-400 mb-1">Duration</p>
                       <p className="text-sm font-semibold text-slate-700">
-                        {program.duration_weeks} weeks
+                        {enrichedClient.program.duration_weeks} weeks
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-slate-400 mb-1">Started</p>
                       <p className="text-sm text-slate-700">
-                        {formatDate(program.created_at)}
+                        {formatDate(enrichedClient.program.created_at)}
                       </p>
                     </div>
                   </div>
