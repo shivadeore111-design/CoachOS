@@ -1,30 +1,53 @@
-/**
- * src/pages/Leaderboard.tsx
- * Client leaderboard — ranks clients by adherence + streak bonus score.
- * Uses mock data with API fallback for demo mode.
- */
-import { useMemo } from "react";
-import { Trophy, Flame, TrendingUp, TrendingDown, Minus, Medal } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
-import { useClients } from "../hooks/useClients";
-import { buildLeaderboard, getRankEmoji, getRankColor } from "../lib/leaderboard";
+import { useEffect, useMemo, useState } from "react";
+import { Trophy, Flame, TrendingUp, Minus, Medal } from "lucide-react";
 import { getAvatarColor, getInitials } from "../lib/utils";
 import AdherenceScore from "../components/AdherenceScore";
 import RiskBadge from "../components/RiskBadge";
+import { getLeaderboard } from "../lib/metrics";
+import { supabase } from "../lib/supabase";
+import type { ClientMetrics } from "../types/clientMetrics";
 
-function MomentumIcon({ trend }: { trend: string }) {
-  if (trend === "improving") return <TrendingUp size={14} className="text-emerald-500" />;
-  if (trend === "declining") return <TrendingDown size={14} className="text-red-500" />;
-  return <Minus size={14} className="text-slate-400" />;
+function getRankEmoji(rank: number): string {
+  if (rank === 1) return "🥇";
+  if (rank === 2) return "🥈";
+  if (rank === 3) return "🥉";
+  return `#${rank}`;
+}
+
+function getRankColor(rank: number): string {
+  if (rank === 1) return "text-amber-500";
+  if (rank === 2) return "text-slate-400";
+  if (rank === 3) return "text-amber-700";
+  return "text-slate-500";
 }
 
 export default function Leaderboard() {
-  const { user } = useAuth();
-  const { clients, loading } = useClients(user?.id ?? "");
+  const [leaderboard, setLeaderboard] = useState<ClientMetrics[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const leaderboard = useMemo(() => buildLeaderboard(clients), [clients]);
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      const data = await getLeaderboard();
+      setLeaderboard(data);
+      setLoading(false);
+    }
 
-  const top3 = leaderboard.slice(0, 3);
+    void load();
+
+    const channel = supabase
+      .channel("leaderboard-metrics")
+      .on("postgres_changes", { event: "*", schema: "public", table: "workouts" }, () => {
+        void load();
+      })
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const top3 = useMemo(() => leaderboard.slice(0, 3), [leaderboard]);
 
   if (loading) {
     return (
@@ -39,14 +62,11 @@ export default function Leaderboard() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-50">
-      {/* Header */}
       <div className="bg-white border-b border-slate-100 px-8 py-5">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-slate-800">Leaderboard</h1>
-            <p className="text-sm text-slate-400 mt-0.5">
-              Client rankings by adherence score + streak bonus
-            </p>
+            <p className="text-sm text-slate-400 mt-0.5">Client rankings by adherence score</p>
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl">
             <Trophy size={13} className="text-amber-500" />
@@ -56,18 +76,15 @@ export default function Leaderboard() {
       </div>
 
       <div className="px-8 py-6 space-y-6">
-        {/* Scoring explanation */}
         <div className="bg-white rounded-2xl border border-slate-100 px-5 py-4">
           <div className="flex items-center gap-6 flex-wrap">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-emerald-500 rounded-full" />
-              <span className="text-xs text-slate-500">
-                Score = Adherence (70%) + Streak Bonus (30%, max 30pts)
-              </span>
+              <span className="text-xs text-slate-500">Score = Adherence (30-day, from database view)</span>
             </div>
             <div className="flex items-center gap-2">
               <Flame size={13} className="text-orange-500" />
-              <span className="text-xs text-slate-500">Each consecutive day adds +2 bonus points</span>
+              <span className="text-xs text-slate-500">Ranked by client_metrics.adherence</span>
             </div>
             <div className="flex items-center gap-2">
               <Trophy size={13} className="text-amber-500" />
@@ -76,79 +93,57 @@ export default function Leaderboard() {
           </div>
         </div>
 
-        {/* Top 3 Podium */}
         {top3.length > 0 && (
           <div className="grid grid-cols-3 gap-4">
-            {/* 2nd place */}
             {top3[1] ? (
               <div className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col items-center text-center mt-6">
                 <div className="text-2xl mb-2">🥈</div>
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${getAvatarColor(top3[1].client_name)} flex items-center justify-center text-white font-bold text-lg shadow-md mb-3`}>
-                  {getInitials(top3[1].client_name)}
+                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${getAvatarColor(top3[1].name)} flex items-center justify-center text-white font-bold text-lg shadow-md mb-3`}>
+                  {getInitials(top3[1].name)}
                 </div>
-                <p className="text-sm font-bold text-slate-800">{top3[1].client_name}</p>
+                <p className="text-sm font-bold text-slate-800">{top3[1].name}</p>
                 <p className="text-xs text-slate-400 mt-0.5 mb-3 line-clamp-1">{top3[1].goal}</p>
                 <div className="w-full bg-slate-50 rounded-xl p-3">
-                  <p className="text-2xl font-bold text-slate-700">{top3[1].leaderboardScore}</p>
+                  <p className="text-2xl font-bold text-slate-700">{Math.round(top3[1].adherence)}</p>
                   <p className="text-xs text-slate-400">leaderboard pts</p>
                   <div className="flex items-center justify-center gap-2 mt-2">
-                    <span className="text-xs text-slate-500">{top3[1].adherenceScore}% adherence</span>
-                    {top3[1].streak > 0 && (
-                      <span className="flex items-center gap-1 text-xs text-orange-500 font-medium">
-                        <Flame size={11} />
-                        {top3[1].streak}
-                      </span>
-                    )}
+                    <span className="text-xs text-slate-500">{top3[1].adherence}% adherence</span>
                   </div>
                 </div>
               </div>
             ) : <div />}
 
-            {/* 1st place */}
             {top3[0] && (
               <div className="bg-gradient-to-b from-amber-50 to-white rounded-2xl border-2 border-amber-300 p-5 flex flex-col items-center text-center shadow-md shadow-amber-100">
                 <div className="text-3xl mb-2">🥇</div>
-                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${getAvatarColor(top3[0].client_name)} flex items-center justify-center text-white font-bold text-xl shadow-lg mb-3`}>
-                  {getInitials(top3[0].client_name)}
+                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${getAvatarColor(top3[0].name)} flex items-center justify-center text-white font-bold text-xl shadow-lg mb-3`}>
+                  {getInitials(top3[0].name)}
                 </div>
-                <p className="text-sm font-bold text-slate-800">{top3[0].client_name}</p>
+                <p className="text-sm font-bold text-slate-800">{top3[0].name}</p>
                 <p className="text-xs text-slate-400 mt-0.5 mb-3 line-clamp-1">{top3[0].goal}</p>
                 <div className="w-full bg-amber-50 rounded-xl p-3 border border-amber-200">
-                  <p className="text-3xl font-bold text-amber-600">{top3[0].leaderboardScore}</p>
+                  <p className="text-3xl font-bold text-amber-600">{Math.round(top3[0].adherence)}</p>
                   <p className="text-xs text-amber-500">leaderboard pts</p>
                   <div className="flex items-center justify-center gap-2 mt-2">
-                    <span className="text-xs text-slate-500">{top3[0].adherenceScore}% adherence</span>
-                    {top3[0].streak > 0 && (
-                      <span className="flex items-center gap-1 text-xs text-orange-500 font-medium">
-                        <Flame size={11} />
-                        {top3[0].streak}
-                      </span>
-                    )}
+                    <span className="text-xs text-slate-500">{top3[0].adherence}% adherence</span>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* 3rd place */}
             {top3[2] ? (
               <div className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col items-center text-center mt-10">
                 <div className="text-2xl mb-2">🥉</div>
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${getAvatarColor(top3[2].client_name)} flex items-center justify-center text-white font-bold text-lg shadow-md mb-3`}>
-                  {getInitials(top3[2].client_name)}
+                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${getAvatarColor(top3[2].name)} flex items-center justify-center text-white font-bold text-lg shadow-md mb-3`}>
+                  {getInitials(top3[2].name)}
                 </div>
-                <p className="text-sm font-bold text-slate-800">{top3[2].client_name}</p>
+                <p className="text-sm font-bold text-slate-800">{top3[2].name}</p>
                 <p className="text-xs text-slate-400 mt-0.5 mb-3 line-clamp-1">{top3[2].goal}</p>
                 <div className="w-full bg-slate-50 rounded-xl p-3">
-                  <p className="text-2xl font-bold text-amber-800">{top3[2].leaderboardScore}</p>
+                  <p className="text-2xl font-bold text-amber-800">{Math.round(top3[2].adherence)}</p>
                   <p className="text-xs text-slate-400">leaderboard pts</p>
                   <div className="flex items-center justify-center gap-2 mt-2">
-                    <span className="text-xs text-slate-500">{top3[2].adherenceScore}% adherence</span>
-                    {top3[2].streak > 0 && (
-                      <span className="flex items-center gap-1 text-xs text-orange-500 font-medium">
-                        <Flame size={11} />
-                        {top3[2].streak}
-                      </span>
-                    )}
+                    <span className="text-xs text-slate-500">{top3[2].adherence}% adherence</span>
                   </div>
                 </div>
               </div>
@@ -156,7 +151,6 @@ export default function Leaderboard() {
           </div>
         )}
 
-        {/* Full Rankings Table */}
         <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
             <Medal size={15} className="text-slate-500" />
@@ -175,55 +169,36 @@ export default function Leaderboard() {
           ) : (
             <div className="divide-y divide-slate-50">
               {leaderboard.map((entry, index) => {
-                const client = clients.find((c) => c.id === entry.client_id);
+                const riskLevel = entry.status === "critical" ? "critical" : entry.status === "at_risk" ? "risk" : "good";
                 return (
                   <div
                     key={entry.client_id}
                     className={`px-5 py-4 flex items-center gap-4 hover:bg-slate-50 transition-colors ${index < 3 ? "bg-slate-50/50" : ""}`}
                   >
-                    {/* Rank */}
-                    <div className={`w-8 text-center font-bold text-sm ${getRankColor(entry.rank)}`}>
-                      {getRankEmoji(entry.rank)}
+                    <div className={`w-8 text-center font-bold text-sm ${getRankColor(index + 1)}`}>
+                      {getRankEmoji(index + 1)}
                     </div>
 
-                    {/* Avatar */}
-                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getAvatarColor(entry.client_name)} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
-                      {getInitials(entry.client_name)}
+                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getAvatarColor(entry.name)} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
+                      {getInitials(entry.name)}
                     </div>
 
-                    {/* Name + goal */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-800">{entry.client_name}</p>
+                      <p className="text-sm font-semibold text-slate-800">{entry.name}</p>
                       <p className="text-xs text-slate-400 truncate">{entry.goal}</p>
                     </div>
 
-                    {/* Risk badge */}
-                    {client?.riskLevel && (
-                      <RiskBadge level={client.riskLevel} size="sm" />
-                    )}
+                    <RiskBadge level={riskLevel} size="sm" />
 
-                    {/* Momentum */}
-                    {client?.momentum && (
-                      <div className="hidden sm:flex items-center">
-                        <MomentumIcon trend={client.momentum} />
-                      </div>
-                    )}
+                    <div className="hidden sm:flex items-center">
+                      {riskLevel === "good" ? <TrendingUp size={14} className="text-emerald-500" /> : <Minus size={14} className="text-slate-400" />}
+                    </div>
 
-                    {/* Streak */}
-                    {entry.streak > 0 && (
-                      <div className="hidden sm:flex items-center gap-1 text-xs text-orange-500 font-medium">
-                        <Flame size={13} />
-                        <span>{entry.streak}d</span>
-                      </div>
-                    )}
+                    <AdherenceScore score={entry.adherence} size="sm" showLabel={false} />
 
-                    {/* Adherence ring */}
-                    <AdherenceScore score={entry.adherenceScore} size="sm" showLabel={false} />
-
-                    {/* Leaderboard score */}
                     <div className="text-right w-16 flex-shrink-0">
-                      <p className={`text-lg font-bold ${getRankColor(entry.rank)}`}>
-                        {entry.leaderboardScore}
+                      <p className={`text-lg font-bold ${getRankColor(index + 1)}`}>
+                        {Math.round(entry.adherence)}
                       </p>
                       <p className="text-xs text-slate-300">pts</p>
                     </div>

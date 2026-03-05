@@ -9,7 +9,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { useClients } from "../hooks/useClients";
+import { useClientMetrics } from "../hooks/useClientMetrics";
 import { AdherenceBarChart, AdherenceTrendChart } from "../components/Charts";
 import AdherenceScore from "../components/AdherenceScore";
 import RiskBadge from "../components/RiskBadge";
@@ -36,7 +36,7 @@ function LoadingSkeleton() {
 
 export default function Analytics() {
   const { user } = useAuth();
-  const { clients, loading, error, refresh } = useClients(user?.id ?? "");
+  const { clients, loading, error, refresh } = useClientMetrics(user?.id ?? "");
 
   const stats = useMemo(() => {
     if (clients.length === 0)
@@ -44,8 +44,8 @@ export default function Analytics() {
         avg: 0,
         best: 0,
         worst: 0,
-        improving: 0,
-        declining: 0,
+        onTrack: 0,
+        atRisk: 0,
         totalCompleted: 0,
         totalMissed: 0,
         completionRate: 0,
@@ -54,8 +54,8 @@ export default function Analytics() {
     const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
     const best = Math.max(...scores);
     const worst = Math.min(...scores);
-    const improving = clients.filter((c) => c.momentum === "improving").length;
-    const declining = clients.filter((c) => c.momentum === "declining").length;
+    const onTrack = clients.filter((c) => c.riskLevel === "good").length;
+    const atRisk = clients.filter((c) => c.riskLevel !== "good").length;
     const totalCompleted = clients.reduce(
       (sum, c) =>
         sum + (c.workouts ?? []).filter((w) => w.status === "completed").length,
@@ -68,7 +68,7 @@ export default function Analytics() {
     );
     const total = totalCompleted + totalMissed;
     const completionRate = total > 0 ? Math.round((totalCompleted / total) * 100) : 0;
-    return { avg, best, worst, improving, declining, totalCompleted, totalMissed, completionRate };
+    return { avg, best, worst, onTrack, atRisk, totalCompleted, totalMissed, completionRate };
   }, [clients]);
 
   const topPerformer = useMemo(
@@ -78,13 +78,7 @@ export default function Analytics() {
     [clients]
   );
 
-  const mostImproved = useMemo(
-    () =>
-      [...clients]
-        .filter((c) => c.momentum === "improving")
-        .sort((a, b) => (b.adherenceScore ?? 0) - (a.adherenceScore ?? 0))[0] ?? null,
-    [clients]
-  );
+  const mostImproved = null;
 
   const atRiskClients = useMemo(
     () =>
@@ -160,19 +154,19 @@ export default function Analytics() {
                 subColor: "text-slate-400",
               },
               {
-                label: "Improving Clients",
-                value: stats.improving,
+                label: "On Track Clients",
+                value: stats.onTrack,
                 icon: TrendingUp,
                 color: "bg-teal-500",
-                sub: "positive momentum",
+                sub: "adherence ≥ 70%",
                 subColor: "text-teal-600",
               },
               {
-                label: "Declining Clients",
-                value: stats.declining,
+                label: "At Risk Clients",
+                value: stats.atRisk,
                 icon: TrendingDown,
                 color: "bg-rose-500",
-                sub: "need intervention",
+                sub: "adherence < 70%",
                 subColor: "text-rose-500",
               },
             ].map((card, i) => (
