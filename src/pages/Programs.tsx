@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Dumbbell, Plus, Users, Target, Clock, ChevronRight, Zap, RefreshCw } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useClients } from "../hooks/useClients";
+import { createProgram, updateClientProgram } from "../lib/api";
 import { getProgramTypeColor } from "../lib/utils";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -61,6 +62,9 @@ export default function Programs() {
   const { user } = useAuth();
   const { clients, loading, error, refresh } = useClients(user?.id ?? "");
   const [activeTemplate, setActiveTemplate] = useState<string | null>(null);
+  const [templateToAssign, setTemplateToAssign] = useState<(typeof programTemplates)[0] | null>(null);
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
+  const [assigningTemplate, setAssigningTemplate] = useState(false);
 
   const clientsWithPrograms = useMemo(
     () => clients.filter((c) => c.program),
@@ -87,10 +91,45 @@ export default function Programs() {
   }, [clients]);
 
   const handleUseTemplate = (template: (typeof programTemplates)[0]) => {
-    toast.success(
-      `Template "${template.name}" ready — assign to a client from their profile.`,
-      { duration: 4000 }
-    );
+    setTemplateToAssign(template);
+    setSelectedClientId(clients[0]?.id ?? "");
+  };
+
+  const handleConfirmTemplateAssignment = async () => {
+    if (!templateToAssign || !selectedClientId) {
+      toast.error("Select a client to continue");
+      return;
+    }
+
+    setAssigningTemplate(true);
+
+    const createdProgram = await createProgram({
+      client_id: selectedClientId,
+      name: templateToAssign.name,
+      type: templateToAssign.type,
+      weekly_target: templateToAssign.weekly_target,
+      duration_weeks: templateToAssign.duration_weeks,
+    });
+
+    if (createdProgram.error || !createdProgram.data) {
+      toast.error("Failed to create program from template");
+      setAssigningTemplate(false);
+      return;
+    }
+
+    const result = await updateClientProgram(selectedClientId, createdProgram.data.id);
+
+    if (result.error) {
+      toast.error("Failed to assign template");
+      setAssigningTemplate(false);
+      return;
+    }
+
+    setAssigningTemplate(false);
+    setTemplateToAssign(null);
+    setSelectedClientId("");
+    refresh();
+    toast.success(`Assigned ${templateToAssign.name} successfully`);
   };
 
   return (
@@ -383,6 +422,54 @@ export default function Programs() {
           </div>
         </section>
       </div>
+        {templateToAssign && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4">
+            <div className="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-xl p-6">
+              <h3 className="text-lg font-semibold text-slate-800">
+                Assign {templateToAssign.name} to a client
+              </h3>
+              <p className="text-sm text-slate-500 mt-1">
+                Choose a client to immediately apply this template.
+              </p>
+
+              <label className="block text-sm text-slate-600 mt-5 mb-2">Client</label>
+              <select
+                value={selectedClientId}
+                onChange={(e) => setSelectedClientId(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="" disabled>
+                  Select a client
+                </option>
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.name}
+                  </option>
+                ))}
+              </select>
+
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    if (assigningTemplate) return;
+                    setTemplateToAssign(null);
+                    setSelectedClientId("");
+                  }}
+                  className="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmTemplateAssignment}
+                  disabled={assigningTemplate || !selectedClientId}
+                  className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {assigningTemplate ? "Assigning..." : "Confirm"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 }
