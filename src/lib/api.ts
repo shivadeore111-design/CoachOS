@@ -72,17 +72,40 @@ export async function recordPayment(data: { coach_id: string; plan: string; amou
 export async function getClients(coachId: string): Promise<ApiResult<Client[]>> {
   const blocked = requireSupabase<Client[]>();
   if (blocked) return blocked;
-  const { data, error } = await supabase.from("clients").select(`*, program:programs!clients_program_id_fkey(*)`).eq("coach_id", coachId).order("created_at", { ascending: false });
-  if (error) return err(error.message);
-  return ok((data ?? []) as Client[]);
+  const { data: clients, error: clientsError } = await supabase.from("clients").select("*").eq("coach_id", coachId).order("created_at", { ascending: false });
+  if (clientsError) return err(clientsError.message);
+
+  const programIds = Array.from(new Set((clients ?? []).map((client) => client.program_id).filter(Boolean))) as string[];
+  let programsById = new Map<string, Program>();
+
+  if (programIds.length > 0) {
+    const { data: programs, error: programsError } = await supabase.from("programs").select("*").in("id", programIds);
+    if (programsError) return err(programsError.message);
+    programsById = new Map((programs ?? []).map((program) => [program.id, program as Program]));
+  }
+
+  const clientsWithPrograms = (clients ?? []).map((client) => ({
+    ...(client as Client),
+    program: client.program_id ? programsById.get(client.program_id) : undefined,
+  }));
+
+  return ok(clientsWithPrograms as Client[]);
 }
 
 export async function getClientById(clientId: string, coachId: string): Promise<ApiResult<Client>> {
   const blocked = requireSupabase<Client>();
   if (blocked) return blocked;
-  const { data, error } = await supabase.from("clients").select(`*, program:programs!clients_program_id_fkey(*)`).eq("id", clientId).eq("coach_id", coachId).single();
-  if (error) return err(error.message);
-  return ok(data as Client);
+  const { data: client, error: clientError } = await supabase.from("clients").select("*").eq("id", clientId).eq("coach_id", coachId).single();
+  if (clientError) return err(clientError.message);
+
+  let program: Program | undefined;
+  if (client.program_id) {
+    const { data: programData, error: programError } = await supabase.from("programs").select("*").eq("id", client.program_id).maybeSingle();
+    if (programError) return err(programError.message);
+    program = (programData as Program | null) ?? undefined;
+  }
+
+  return ok({ ...(client as Client), program });
 }
 
 export async function updateClientProgram(clientId: string, programId: string | null): Promise<ApiResult<Client>> {
@@ -98,9 +121,17 @@ export async function updateClientProgram(clientId: string, programId: string | 
     }
   }
 
-  const { data, error } = await supabase.from("clients").update({ program_id: programId }).eq("id", clientId).select(`*, program:programs!clients_program_id_fkey(*)`).single();
-  if (error) return err(error.message);
-  return ok(data as Client);
+  const { data: updatedClient, error: updateError } = await supabase.from("clients").update({ program_id: programId }).eq("id", clientId).select("*").single();
+  if (updateError) return err(updateError.message);
+
+  let program: Program | undefined;
+  if (updatedClient.program_id) {
+    const { data: programData, error: programError } = await supabase.from("programs").select("*").eq("id", updatedClient.program_id).maybeSingle();
+    if (programError) return err(programError.message);
+    program = (programData as Program | null) ?? undefined;
+  }
+
+  return ok({ ...(updatedClient as Client), program });
 }
 
 export async function getPrograms(): Promise<ApiResult<Program[]>> {
@@ -122,14 +153,30 @@ export async function createTemplateProgram(data: Pick<Program, "name" | "type" 
 export async function getActiveClientPrograms(): Promise<ApiResult<Array<Program & { client: Pick<Client, "id" | "name" | "goal"> | null }>>> {
   const coachId = await getAuthenticatedCoachId();
   if (!coachId) return err("User not authenticated");
-  const { data, error } = await supabase
+  const { data: programs, error: programsError } = await supabase
     .from("programs")
-    .select(`*, client:clients!programs_client_id_fkey(id,name,goal)`)
+    .select("*")
     .eq("coach_id", coachId)
     .not("client_id", "is", null)
     .order("created_at", { ascending: false });
-  if (error) return err(error.message);
-  return ok((data ?? []) as Array<Program & { client: Pick<Client, "id" | "name" | "goal"> | null }>);
+  if (programsError) return err(programsError.message);
+
+  const { data: clients, error: clientsError } = await supabase
+    .from("clients")
+    .select("id, name, goal, avatar")
+    .eq("coach_id", coachId);
+  if (clientsError) return err(clientsError.message);
+
+  const clientsById = new Map((clients ?? []).map((client) => [client.id, client]));
+  const programsWithClients = (programs ?? []).map((program) => {
+    const client = program.client_id ? clientsById.get(program.client_id) : null;
+    return {
+      ...(program as Program),
+      client: client ? { id: client.id, name: client.name, goal: client.goal } : null,
+    };
+  });
+
+  return ok(programsWithClients as Array<Program & { client: Pick<Client, "id" | "name" | "goal"> | null }>);
 }
 
 export async function createClient(client: Omit<Client, "id" | "created_at">): Promise<ApiResult<Client>> {
