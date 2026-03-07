@@ -17,6 +17,17 @@ function err<T>(msg: string): ApiResult<T> {
   return { data: null, error: msg };
 }
 
+
+async function getAuthenticatedCoachId(): Promise<string | null> {
+  if (!isSupabaseConfigured) return null;
+  const { data, error } = await supabase.auth.getUser();
+  if (error) {
+    console.error("[CoachOS API]", error.message);
+    return null;
+  }
+  return data.user?.id ?? null;
+}
+
 // ─── Coach ───────────────────────────────────────────────────────────────────
 
 export async function getCoachProfile(coachId: string): Promise<ApiResult<Coach>> {
@@ -91,6 +102,26 @@ export async function updateClientProgram(
     if (!client) return err("Client not found");
     return ok({ ...client, program_id: programId });
   }
+
+  if (programId) {
+    const { data: programData, error: programError } = await supabase
+      .from("programs")
+      .select("id, client_id")
+      .eq("id", programId)
+      .maybeSingle();
+
+    if (programError) return err(programError.message);
+
+    if (programData && !programData.client_id) {
+      const { error: attachError } = await supabase
+        .from("programs")
+        .update({ client_id: clientId })
+        .eq("id", programId)
+        .is("client_id", null);
+      if (attachError) return err(attachError.message);
+    }
+  }
+
   const { data, error } = await supabase
     .from("clients")
     .update({ program_id: programId })
@@ -110,12 +141,70 @@ export async function getPrograms(): Promise<ApiResult<Program[]>> {
   if (!isSupabaseConfigured) {
     return ok(mockClients.map((c) => c.program).filter(Boolean) as Program[]);
   }
+
+  const coachId = await getAuthenticatedCoachId();
+  if (!coachId) return err("User not authenticated");
+
   const { data, error } = await supabase
     .from("programs")
     .select("*")
+    .eq("coach_id", coachId)
     .order("created_at", { ascending: false });
   if (error) return err(error.message);
   return ok((data ?? []) as Program[]);
+}
+
+export async function createTemplateProgram(
+  data: Pick<Program, "name" | "type" | "weekly_target" | "duration_weeks"> &
+    Partial<Pick<Program, "description" | "exercises">>
+): Promise<ApiResult<Program>> {
+  if (!isSupabaseConfigured) {
+    const fake: Program = {
+      ...data,
+      id: `p-${Date.now()}`,
+      created_at: new Date().toISOString(),
+      client_id: null,
+      is_template: true,
+    };
+    return ok(fake);
+  }
+
+  const coachId = await getAuthenticatedCoachId();
+  if (!coachId) return err("User not authenticated");
+
+  const { data: program, error } = await supabase
+    .from("programs")
+    .insert([{ ...data, is_template: true, coach_id: coachId, client_id: null }])
+    .select()
+    .single();
+
+  if (error) return err(error.message);
+  return ok(program as Program);
+}
+
+export async function getActiveClientPrograms(): Promise<ApiResult<Array<Program & { client: Pick<Client, "id" | "name" | "goal"> | null }>>> {
+  if (!isSupabaseConfigured) {
+    const active = mockClients
+      .filter((c) => c.program)
+      .map((c) => ({ ...(c.program as Program), client: { id: c.id, name: c.name, goal: c.goal } }));
+    return ok(active);
+  }
+
+  const coachId = await getAuthenticatedCoachId();
+  if (!coachId) return err("User not authenticated");
+
+  const { data, error } = await supabase
+    .from("programs")
+    .select(`
+      *,
+      client:clients!programs_client_id_fkey(id, name, goal, coach_id)
+    `)
+    .eq("coach_id", coachId)
+    .not("client_id", "is", null)
+    .order("created_at", { ascending: false });
+
+  if (error) return err(error.message);
+  return ok((data ?? []) as Array<Program & { client: Pick<Client, "id" | "name" | "goal"> | null }>);
 }
 
 export async function createClient(

@@ -19,7 +19,6 @@ import {
   updateClientProgram,
 } from "../lib/api";
 import {
-  getAdherenceFromWorkouts,
   calculateStreak,
   getMomentumTrend,
   getWeeklyAdherenceData,
@@ -80,8 +79,12 @@ export default function ClientProfile() {
     if (!client) return null;
     const selectedProgram = client.program ?? null;
     const weeklyTarget = selectedProgram?.weekly_target ?? 3;
-    const score = getAdherenceFromWorkouts(workouts, weeklyTarget);
-    const riskLevel = score < 40 ? "critical" : score < 70 ? "risk" : "good";
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    const recent = workouts.filter((w) => new Date(w.date) >= cutoff);
+    const completedRecent = recent.filter((w) => w.status === "completed").length;
+    const score = recent.length > 0 ? Math.round((completedRecent / recent.length) * 100) : 0;
+    const riskLevel = score < 50 ? "critical" : score < 70 ? "risk" : "good";
     const streak = calculateStreak(workouts);
     const momentum = getMomentumTrend(workouts, weeklyTarget);
     return { ...client, adherenceScore: score, riskLevel, streak, momentum, program: selectedProgram ?? undefined, workouts };
@@ -100,6 +103,24 @@ export default function ClientProfile() {
     () => getWeeklyAdherenceData(workouts, client?.program?.weekly_target ?? 3),
     [workouts, client?.program?.weekly_target]
   );
+
+  const workoutCalendar = useMemo(() => {
+    const days = Array.from({ length: 30 }, (_, idx) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (29 - idx));
+      const dateKey = format(date, "yyyy-MM-dd");
+      const dayWorkouts = workouts.filter((w) => w.date === dateKey);
+      const status = dayWorkouts.some((w) => w.status === "completed")
+        ? "completed"
+        : dayWorkouts.some((w) => w.status === "missed")
+        ? "missed"
+        : dayWorkouts.some((w) => w.status === "scheduled")
+        ? "scheduled"
+        : "none";
+      return { dateKey, day: format(date, "d"), status };
+    });
+    return days;
+  }, [workouts]);
 
   const handleAssignProgram = useCallback(
     async (programId: string) => {
@@ -418,6 +439,30 @@ export default function ClientProfile() {
             </div>
             <p className="text-2xl font-bold text-slate-800">{completedCount}</p>
             <p className="text-xs text-slate-400">{missedCount} missed</p>
+          </div>
+        </div>
+
+
+        <div className="bg-white rounded-2xl border border-slate-100 p-4">
+          <h3 className="text-sm font-semibold text-slate-800 mb-3">30-Day Workout Calendar</h3>
+          <div className="grid grid-cols-10 gap-2">
+            {workoutCalendar.map((day) => (
+              <div key={day.dateKey} className="text-center">
+                <div
+                  title={day.dateKey}
+                  className={`w-6 h-6 rounded-md mx-auto ${
+                    day.status === "completed"
+                      ? "bg-emerald-500"
+                      : day.status === "missed"
+                      ? "bg-red-400"
+                      : day.status === "scheduled"
+                      ? "bg-slate-300"
+                      : "bg-slate-100"
+                  }`}
+                />
+                <p className="text-[10px] text-slate-400 mt-1">{day.day}</p>
+              </div>
+            ))}
           </div>
         </div>
 
