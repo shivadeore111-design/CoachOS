@@ -28,7 +28,11 @@ export interface Client {
 
 export interface Program {
   id: string;
-  client_id?: string;
+  client_id?: string | null;
+  coach_id?: string;
+  is_template?: boolean;
+  description?: string;
+  exercises?: string[];
   name: string;
   weekly_target: number;
   duration_weeks: number;

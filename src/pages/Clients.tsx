@@ -110,6 +110,8 @@ export default function Clients() {
       } else {
         // 2. Create a fresh program for the client if none was selected
         const programResult = await createProgram({
+          coach_id: user.id,
+          is_template: false,
           client_id: clientResult.data.id,
           name: form.programName.trim() || `${form.name}'s Program`,
           weekly_target: form.weeklyTarget,
