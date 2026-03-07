@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { BarChart3, Calendar, RefreshCw } from "lucide-react";
+import { BarChart3, Calendar, RefreshCw, Trophy, TriangleAlert } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { getClients, getWorkoutsForCoach } from "../lib/api";
-import { AdherenceBarChart } from "../components/Charts";
+import { AdherenceBarChart, AdherenceTrendChart } from "../components/Charts";
+import { calculateAdherence, getWeeklyAdherenceData } from "../lib/adherence";
 import type { Client, Workout } from "../lib/types";
 
 export default function Analytics() {
@@ -18,11 +19,20 @@ export default function Analytics() {
     const [cRes, wRes] = await Promise.all([getClients(user.id), getWorkoutsForCoach(user.id)]);
     if (cRes.error || wRes.error) setError(cRes.error || wRes.error || "Failed to load analytics");
     setClients(cRes.data ?? []);
-    setWorkouts(wRes.data ?? []);
+    setWorkouts((wRes.data ?? []) as Workout[]);
     setLoading(false);
   };
 
   useEffect(() => { void refresh(); }, [user?.id]);
+
+  const enrichedClients = useMemo(() => clients.map((c) => {
+    const cWorkouts = workouts.filter((w) => w.client_id === c.id);
+    const weeklyTarget = c.program?.weekly_target ?? 3;
+    const adherenceScore = calculateAdherence(cWorkouts, weeklyTarget * 4, 30);
+    const completed = cWorkouts.filter((w) => w.status === "completed").length;
+    const missed = cWorkouts.filter((w) => w.status === "missed").length;
+    return { ...c, workouts: cWorkouts, adherenceScore, completed, missed };
+  }), [clients, workouts]);
 
   const weeklyTrend = useMemo(() => {
     return Array.from({ length: 8 }, (_, i) => {
@@ -41,13 +51,8 @@ export default function Analytics() {
     });
   }, [workouts]);
 
-  const perClient = useMemo(() => clients.map((c) => {
-    const cWorkouts = workouts.filter((w) => w.client_id === c.id);
-    const total = cWorkouts.length;
-    const completed = cWorkouts.filter((w) => w.status === "completed").length;
-    const adherenceScore = total > 0 ? Math.round((completed / total) * 100) : 0;
-    return { ...c, adherenceScore };
-  }), [clients, workouts]);
+  const topPerformer = useMemo(() => [...enrichedClients].sort((a, b) => (b.adherenceScore ?? 0) - (a.adherenceScore ?? 0))[0], [enrichedClients]);
+  const interventionList = useMemo(() => [...enrichedClients].filter((c) => (c.adherenceScore ?? 0) < 70).sort((a, b) => (a.adherenceScore ?? 0) - (b.adherenceScore ?? 0)), [enrichedClients]);
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-50">
@@ -83,9 +88,69 @@ export default function Analytics() {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-5">
+              <h2 className="text-sm font-semibold text-slate-800 mb-4">Workout Breakdown</h2>
+              <div className="space-y-3">
+                {enrichedClients.map((client) => {
+                  const total = client.completed + client.missed;
+                  const completedPct = total > 0 ? Math.round((client.completed / total) * 100) : 0;
+                  return (
+                    <div key={client.id}>
+                      <div className="flex justify-between text-xs mb-1"><span className="text-slate-600">{client.name}</span><span className="text-slate-500">{client.completed} completed / {client.missed} missed</span></div>
+                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500" style={{ width: `${completedPct}%` }} /></div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="bg-white rounded-2xl border border-slate-100 p-5">
+              <div className="flex items-center gap-2 mb-4"><Trophy size={15} className="text-amber-500" /><h2 className="text-sm font-semibold text-slate-800">Top Performer</h2></div>
+              {!topPerformer ? <p className="text-sm text-slate-400">No data yet.</p> : (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                  <p className="text-sm font-semibold text-emerald-700">{topPerformer.name}</p>
+                  <p className="text-2xl font-bold text-emerald-600 mt-1">{topPerformer.adherenceScore}%</p>
+                  <p className="text-xs text-emerald-700 mt-1">{topPerformer.goal}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="bg-white rounded-2xl border border-slate-100 p-5">
             <h2 className="text-sm font-semibold text-slate-800 mb-4">Per-client breakdown</h2>
-            <div className="h-64"><AdherenceBarChart clients={perClient} /></div>
+            <div className="h-64"><AdherenceBarChart clients={enrichedClients} /></div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-100 p-5">
+            <h2 className="text-sm font-semibold text-slate-800 mb-4">Individual 8-week trend charts</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {enrichedClients.map((client) => {
+                const weeklyData = getWeeklyAdherenceData(client.workouts ?? [], client.program?.weekly_target ?? 3, 8);
+                return (
+                  <div key={client.id} className="rounded-xl border border-slate-100 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-semibold text-slate-700">{client.name}</p>
+                      <p className="text-xs text-slate-500">{weeklyData.length} weeks</p>
+                    </div>
+                    <div className="h-48"><AdherenceTrendChart client={client} /></div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-100 p-5">
+            <div className="flex items-center gap-2 mb-4"><TriangleAlert size={15} className="text-rose-500" /><h2 className="text-sm font-semibold text-slate-800">Intervention Priority List</h2></div>
+            {interventionList.length === 0 ? <p className="text-sm text-slate-400">No at-risk clients right now.</p> : (
+              <div className="space-y-2">
+                {interventionList.map((client, idx) => (
+                  <div key={client.id} className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2">
+                    <p className="text-sm text-slate-700">#{idx + 1} {client.name}</p>
+                    <p className="text-sm font-semibold text-rose-600">{client.adherenceScore}%</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

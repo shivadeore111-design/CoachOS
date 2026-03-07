@@ -1,15 +1,17 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, AlertTriangle, XOctagon, Activity, Flame, RefreshCw } from "lucide-react";
+import { Users, AlertTriangle, XOctagon, Activity, Flame, RefreshCw, TrendingDown } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useClients } from "../hooks/useClients";
-import { getAlerts, getWorkoutsForCoach } from "../lib/api";
+import { getAlerts } from "../lib/api";
 import { AdherenceBarChart } from "../components/Charts";
 import ClientCard from "../components/ClientCard";
 import InsightCard from "../components/InsightCard";
 import AlertsPanel from "../components/AlertsPanel";
+import { rankByDropoutRisk } from "../lib/riskEngine";
+import { generateInsights } from "../lib/insights";
 import type { Alert } from "../types";
-import type { Client, Insight, Workout } from "../lib/types";
+import type { Insight } from "../lib/types";
 
 function StatCard({ label, value, icon: Icon, color, sub }: { label: string; value: string | number; icon: React.ElementType; color: string; sub?: string }) {
   return <div className="bg-white rounded-2xl border border-slate-100 p-5 flex items-start gap-4"><div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}><Icon size={20} className="text-white" /></div><div><p className="text-xs text-slate-400 font-medium uppercase tracking-wide">{label}</p><p className="text-2xl font-bold text-slate-800 mt-0.5">{value}</p>{sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}</div></div>;
@@ -25,7 +27,6 @@ export default function Dashboard() {
   const { clients, loading, error, refresh } = useClients(user?.id ?? "");
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [alertsLoading, setAlertsLoading] = useState(true);
-  const [workouts, setWorkouts] = useState<Workout[]>([]);
 
   const loadAlerts = useCallback(async () => {
     if (!user?.id) return;
@@ -35,52 +36,51 @@ export default function Dashboard() {
     setAlertsLoading(false);
   }, [user?.id]);
 
-  const loadWorkouts = useCallback(async () => {
-    if (!user?.id) return;
-    const result = await getWorkoutsForCoach(user.id);
-    if (result.data) setWorkouts(result.data);
-  }, [user?.id]);
-
-  useEffect(() => { void loadAlerts(); void loadWorkouts(); }, [loadAlerts, loadWorkouts]);
-
-  const adherenceByClient = useMemo(() => {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 30);
-    return clients.map((client) => {
-      const w = workouts.filter((x) => x.client_id === client.id && new Date(x.date) >= cutoff);
-      const total = w.length;
-      const completed = w.filter((x) => x.status === "completed").length;
-      const adherence = total > 0 ? Math.round((completed / total) * 100) : 0;
-      const riskLevel = adherence < 50 ? "critical" : adherence < 70 ? "risk" : "good";
-      return { ...client, adherenceScore: adherence, riskLevel } as Client;
-    });
-  }, [clients, workouts]);
+  useEffect(() => { void loadAlerts(); }, [loadAlerts]);
 
   const stats = useMemo(() => {
-    if (adherenceByClient.length === 0) return { total: 0, avg: 0, atRisk: 0, critical: 0 };
-    const avg = Math.round(adherenceByClient.reduce((sum, c) => sum + (c.adherenceScore ?? 0), 0) / adherenceByClient.length);
-    const atRisk = adherenceByClient.filter((c) => (c.adherenceScore ?? 0) < 70).length;
-    const critical = adherenceByClient.filter((c) => (c.adherenceScore ?? 0) < 50).length;
-    return { total: adherenceByClient.length, avg, atRisk, critical };
-  }, [adherenceByClient]);
+    if (clients.length === 0) return { total: 0, avg: 0, atRisk: 0, critical: 0 };
+    const avg = Math.round(clients.reduce((sum, c) => sum + (c.adherenceScore ?? 0), 0) / clients.length);
+    const atRisk = clients.filter((c) => c.riskLevel !== "good").length;
+    const critical = clients.filter((c) => c.riskLevel === "critical").length;
+    return { total: clients.length, avg, atRisk, critical };
+  }, [clients]);
 
-  const insights = useMemo<Insight[]>(() =>
-    alerts.slice(0, 6).map((a) => ({
-      type: a.type === "critical_adherence" ? "critical" : "warning",
-      title: a.type === "critical_adherence" ? "Critical Alert" : "Coach Alert",
-      message: a.message,
-      client_id: a.client_id,
-      client_name: a.client_name,
-    })), [alerts]);
+  const topClients = useMemo(() => [...clients].sort((a, b) => (b.adherenceScore ?? 0) - (a.adherenceScore ?? 0)).slice(0, 4), [clients]);
+  const atRiskClients = useMemo(() => [...clients].filter((c) => c.riskLevel !== "good").sort((a, b) => (a.adherenceScore ?? 0) - (b.adherenceScore ?? 0)).slice(0, 4), [clients]);
 
-  const topClients = useMemo(() => [...adherenceByClient].sort((a, b) => (b.adherenceScore ?? 0) - (a.adherenceScore ?? 0)).slice(0, 4), [adherenceByClient]);
-  const atRiskClients = useMemo(() => [...adherenceByClient].filter((c) => (c.adherenceScore ?? 0) < 70).sort((a, b) => (a.adherenceScore ?? 0) - (b.adherenceScore ?? 0)).slice(0, 4), [adherenceByClient]);
+  const weeklySnapshot = useMemo(() => {
+    const decliningClients = clients.filter((c) => c.momentum === "declining").length;
+    const topPerformer = [...clients].sort((a, b) => (b.adherenceScore ?? 0) - (a.adherenceScore ?? 0))[0];
+    const longestStreak = [...clients].sort((a, b) => (b.streak ?? 0) - (a.streak ?? 0))[0];
+    return { decliningClients, topPerformer, longestStreak };
+  }, [clients]);
+
+  const riskRadar = useMemo(() => {
+    const ranked = rankByDropoutRisk(clients);
+    return {
+      high: ranked.filter((r) => r.level === "critical").slice(0, 5),
+      medium: ranked.filter((r) => r.level === "risk").slice(0, 5),
+      low: ranked.filter((r) => r.level === "good").slice(0, 5),
+    };
+  }, [clients]);
+
+  const aiInsights = useMemo<Insight[]>(
+    () => generateInsights(clients).map((item) => ({
+      type: item.type,
+      title: item.title,
+      message: item.message,
+      client_id: item.client_id,
+      client_name: item.client_name,
+    })),
+    [clients]
+  );
 
   const coachFirstName = ((user?.user_metadata?.name as string | undefined) || user?.email || "Coach").split(/[\s@]/)[0];
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-50">
-      <div className="bg-white border-b border-slate-100 px-8 py-5"><div className="flex items-center justify-between"><div><h1 className="text-xl font-bold text-slate-800">Hello, {coachFirstName} 👋</h1><p className="text-sm text-slate-400 mt-0.5">Here's your client overview for today</p></div><div className="flex items-center gap-2"><button onClick={() => { refresh(); void loadAlerts(); void loadWorkouts(); }} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors" title="Refresh data"><RefreshCw size={15} /></button></div></div></div>
+      <div className="bg-white border-b border-slate-100 px-8 py-5"><div className="flex items-center justify-between"><div><h1 className="text-xl font-bold text-slate-800">Hello, {coachFirstName} 👋</h1><p className="text-sm text-slate-400 mt-0.5">Here's your client overview for today</p></div><div className="flex items-center gap-2"><button onClick={() => { refresh(); void loadAlerts(); }} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors" title="Refresh data"><RefreshCw size={15} /></button></div></div></div>
 
       {error && <div className="mx-8 mt-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3"><p className="text-sm text-red-600">{error}</p></div>}
 
@@ -93,9 +93,27 @@ export default function Dashboard() {
             <StatCard label="Critical" value={stats.critical} icon={XOctagon} color="bg-red-500" sub="immediate action" />
           </div>
 
+          <div className="bg-white rounded-2xl border border-slate-100 p-5">
+            <div className="flex items-center gap-2 mb-4"><TrendingDown size={16} className="text-indigo-500" /><h2 className="text-sm font-semibold text-slate-800">This Week's Snapshot</h2></div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-500">Declining clients</p><p className="text-xl font-bold text-red-500">{weeklySnapshot.decliningClients}</p></div>
+              <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-500">Top performer</p><p className="text-xl font-bold text-emerald-600">{weeklySnapshot.topPerformer?.name ?? "—"}</p><p className="text-xs text-slate-500">{weeklySnapshot.topPerformer ? `${weeklySnapshot.topPerformer.adherenceScore ?? 0}% adherence` : "No data"}</p></div>
+              <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-500">Longest streak</p><p className="text-xl font-bold text-orange-500">{weeklySnapshot.longestStreak?.name ?? "—"}</p><p className="text-xs text-slate-500">{weeklySnapshot.longestStreak ? `${weeklySnapshot.longestStreak.streak ?? 0} days` : "No data"}</p></div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-3 gap-6">
-            <div className="col-span-3 lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-5"><h2 className="text-sm font-semibold text-slate-800 mb-4">Client Adherence Scores</h2><div className="h-64"><AdherenceBarChart clients={adherenceByClient} /></div></div>
-            <div className="col-span-3 lg:col-span-1 bg-white rounded-2xl border border-slate-100 p-5"><div className="flex items-center gap-2 mb-4"><h2 className="text-sm font-semibold text-slate-800">AI Insights</h2><span className="text-xs bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full font-medium ml-auto">{insights.length} alerts</span></div>{insights.length === 0 ? <p className="text-xs text-slate-400">No alerts.</p> : <div className="space-y-2.5 max-h-64 overflow-y-auto">{insights.map((insight, i) => <InsightCard key={i} insight={insight} onClientClick={(id) => navigate(`/clients/${id}`)} />)}</div>}</div>
+            <div className="col-span-3 lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-5"><h2 className="text-sm font-semibold text-slate-800 mb-4">Client Adherence Scores</h2><div className="h-64"><AdherenceBarChart clients={clients} /></div></div>
+            <div className="col-span-3 lg:col-span-1 bg-white rounded-2xl border border-slate-100 p-5"><div className="flex items-center gap-2 mb-4"><h2 className="text-sm font-semibold text-slate-800">AI Insights</h2><span className="text-xs bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full font-medium ml-auto">{aiInsights.length} alerts</span></div>{aiInsights.length === 0 ? <p className="text-xs text-slate-400">No alerts.</p> : <div className="space-y-2.5 max-h-64 overflow-y-auto">{aiInsights.map((insight, i) => <InsightCard key={i} insight={insight} onClientClick={(id) => navigate(`/clients/${id}`)} />)}</div>}</div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-100 p-5">
+            <div className="flex items-center gap-2 mb-4"><AlertTriangle size={16} className="text-rose-500" /><h2 className="text-sm font-semibold text-slate-800">Risk Radar</h2></div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3"><p className="text-xs font-semibold text-red-700 mb-2">High Risk (immediate action)</p>{riskRadar.high.length === 0 ? <p className="text-xs text-red-500">No high-risk clients</p> : riskRadar.high.map((item) => <p key={item.client_id} className="text-sm text-red-700">{item.client_name} ({item.score})</p>)}</div>
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3"><p className="text-xs font-semibold text-amber-700 mb-2">Medium Risk (monitor)</p>{riskRadar.medium.length === 0 ? <p className="text-xs text-amber-500">No medium-risk clients</p> : riskRadar.medium.map((item) => <p key={item.client_id} className="text-sm text-amber-700">{item.client_name} ({item.score})</p>)}</div>
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><p className="text-xs font-semibold text-emerald-700 mb-2">Low Risk (on track)</p>{riskRadar.low.length === 0 ? <p className="text-xs text-emerald-500">No low-risk clients</p> : riskRadar.low.map((item) => <p key={item.client_id} className="text-sm text-emerald-700">{item.client_name} ({item.score})</p>)}</div>
+            </div>
           </div>
 
           {!alertsLoading && <AlertsPanel alerts={alerts} coachId={user?.id ?? ""} onAlertsChange={setAlerts} />}

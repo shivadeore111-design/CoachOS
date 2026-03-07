@@ -20,6 +20,18 @@ export function getAdherenceFromWorkouts(
   return toPercent(completed, planned);
 }
 
+export function calculateAdherence(
+  workouts: Workout[],
+  expectedWorkouts: number,
+  days = 30
+): number {
+  const cutoff = subDays(new Date(), days);
+  const completed = workouts.filter(
+    (w) => new Date(w.date) >= cutoff && w.status === "completed"
+  ).length;
+  return toPercent(completed, expectedWorkouts);
+}
+
 export function calculateStreak(workouts: Workout[]): number {
   const completed = workouts
     .filter((w) => w.status === "completed")

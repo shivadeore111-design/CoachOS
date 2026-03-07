@@ -72,7 +72,7 @@ export async function recordPayment(data: { coach_id: string; plan: string; amou
 export async function getClients(coachId: string): Promise<ApiResult<Client[]>> {
   const blocked = requireSupabase<Client[]>();
   if (blocked) return blocked;
-  const { data, error } = await supabase.from("clients").select("*").eq("coach_id", coachId).order("created_at", { ascending: false });
+  const { data, error } = await supabase.from("clients").select(`*, program:programs!clients_program_id_fkey(*)`).eq("coach_id", coachId).order("created_at", { ascending: false });
   if (error) return err(error.message);
   return ok((data ?? []) as Client[]);
 }
@@ -122,7 +122,12 @@ export async function createTemplateProgram(data: Pick<Program, "name" | "type" 
 export async function getActiveClientPrograms(): Promise<ApiResult<Array<Program & { client: Pick<Client, "id" | "name" | "goal"> | null }>>> {
   const coachId = await getAuthenticatedCoachId();
   if (!coachId) return err("User not authenticated");
-  const { data, error } = await supabase.from("programs").select(`*, client:clients(id,name,goal)`).eq("coach_id", coachId).not("client_id", "is", null).order("created_at", { ascending: false });
+  const { data, error } = await supabase
+    .from("programs")
+    .select(`*, client:clients!programs_client_id_fkey(id,name,goal)`)
+    .eq("coach_id", coachId)
+    .not("client_id", "is", null)
+    .order("created_at", { ascending: false });
   if (error) return err(error.message);
   return ok((data ?? []) as Array<Program & { client: Pick<Client, "id" | "name" | "goal"> | null }>);
 }
