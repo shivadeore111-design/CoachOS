@@ -1,7 +1,6 @@
 /**
  * src/hooks/useClients.ts
  * Shared hook — fetches clients with enriched adherence data.
- * Falls back to mock data when Supabase not configured (demo mode).
  */
 import { useState, useEffect, useCallback } from "react";
 import { getClients } from "../lib/api";

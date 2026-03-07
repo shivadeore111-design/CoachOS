@@ -108,7 +108,7 @@ export type WorkoutStatus = "completed" | "missed" | "scheduled";
 export type RiskLevel = "good" | "risk" | "critical";
 export type MomentumTrend = "improving" | "declining" | "stable";
 export type ProgramType = "strength" | "fat_loss" | "athletic" | "mobility" | "custom";
-export type PricingTier = "free" | "pro" | "team";
+export type PricingTier = "free" | "pro" | "business";
 export type AlertType = "missed_workout" | "critical_adherence" | "streak_broken" | "declining_trend";
 
 // ─── API response wrapper ─────────────────────────────────────────────────────
