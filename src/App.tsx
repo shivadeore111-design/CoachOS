@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useState } from "react";
+import { Menu } from "lucide-react";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
@@ -13,10 +15,21 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { useAuth } from "./context/AuthContext";
 
 function AppLayout({ children }: { children: React.ReactNode }) {
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <Sidebar />
-      <main className="flex-1 flex flex-col overflow-hidden">{children}</main>
+      <Sidebar mobileOpen={mobileSidebarOpen} onClose={() => setMobileSidebarOpen(false)} />
+      <main className="relative flex-1 flex flex-col overflow-hidden">
+        <button
+          onClick={() => setMobileSidebarOpen(true)}
+          className="md:hidden absolute top-3 left-3 z-30 w-11 h-11 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-700"
+          aria-label="Open sidebar"
+        >
+          <Menu size={20} />
+        </button>
+        {children}
+      </main>
     </div>
   );
 }

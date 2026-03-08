@@ -75,30 +75,34 @@ export default function Clients() {
   }, [user?.id, refresh]);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50">
-      <div className="bg-white border-b border-slate-100 px-8 py-5">
+    <div className="flex-1 overflow-y-auto bg-slate-50 pb-6">
+      <div className="bg-white border-b border-slate-100 px-4 sm:px-8 py-5">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-slate-800">Clients</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-slate-800">Clients</h1>
             <p className="text-sm text-slate-400 mt-0.5">Manage and track all your clients</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             <span className={`text-xs px-2.5 py-1 rounded-full capitalize font-medium ${planBadgeStyles[plan.plan] ?? planBadgeStyles.free}`}>{plan.plan}</span>
-            <button onClick={refresh} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl"><RefreshCw size={15} /></button>
-            <button onClick={() => canAddClient && setShowAddModal(true)} disabled={!canAddClient} title={canAddClient ? "Add Client" : "Upgrade to add more clients"} className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white px-4 py-2 rounded-xl text-sm font-medium">
+            <button onClick={refresh} className="w-11 h-11 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl flex items-center justify-center"><RefreshCw size={15} /></button>
+            <button onClick={() => canAddClient && setShowAddModal(true)} disabled={!canAddClient} title={canAddClient ? "Add Client" : "Upgrade to add more clients"} className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white px-4 min-h-11 rounded-xl text-sm font-medium">
               <Plus size={15} /> Add Client
             </button>
           </div>
         </div>
       </div>
 
-      <div className="px-8 py-6">
+      <div className="px-4 sm:px-8 py-6">
         {error && <div className="mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3"><p className="text-sm text-red-600">{error}</p></div>}
         {!canAddClient && <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">Upgrade to add more clients.</div>}
         <div className="flex items-center gap-3 mb-6 flex-wrap">
-          <div className="relative flex-1 min-w-[200px] max-w-sm"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search clients..." className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl bg-white" /></div>
-          {(["all", "good", "risk", "critical"] as const).map((f) => <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-full text-xs font-medium border ${filter === f ? "bg-slate-800 text-white" : "bg-white text-slate-500 border-slate-200"}`}>{f === "all" ? `All (${counts.all})` : f === "good" ? `On Track (${counts.good})` : f === "risk" ? `At Risk (${counts.risk})` : `Critical (${counts.critical})`}</button>)}
-          <div className="flex items-center gap-2 ml-auto"><SlidersHorizontal size={14} className="text-slate-400" /><select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white text-slate-600"><option value="score">Sort by Score</option><option value="name">Sort by Name</option><option value="streak">Sort by Streak</option></select></div>
+          <div className="relative w-full sm:flex-1 min-w-[200px] sm:max-w-sm"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search clients..." className="w-full pl-9 pr-4 min-h-11 text-sm border border-slate-200 rounded-xl bg-white" /></div>
+          <div className="w-full sm:w-auto overflow-x-auto">
+            <div className="flex items-center gap-2 min-w-max">
+              {(["all", "good", "risk", "critical"] as const).map((f) => <button key={f} onClick={() => setFilter(f)} className={`px-3 min-h-11 rounded-full text-xs font-medium border whitespace-nowrap ${filter === f ? "bg-slate-800 text-white" : "bg-white text-slate-500 border-slate-200"}`}>{f === "all" ? `All (${counts.all})` : f === "good" ? `On Track (${counts.good})` : f === "risk" ? `At Risk (${counts.risk})` : `Critical (${counts.critical})`}</button>)}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 ml-0 sm:ml-auto w-full sm:w-auto"><SlidersHorizontal size={14} className="text-slate-400" /><select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="text-xs border border-slate-200 rounded-lg px-2 min-h-11 bg-white text-slate-600 w-full sm:w-auto"><option value="score">Sort by Score</option><option value="name">Sort by Name</option><option value="streak">Sort by Streak</option></select></div>
         </div>
 
         {loading ? <div className="text-sm text-slate-400">Loading clients...</div> : filtered.length === 0 ? <div className="text-center py-16"><Users size={40} className="mx-auto text-slate-200 mb-3" /><p className="text-slate-400 text-sm">{clients.length === 0 ? "No clients yet" : "No clients match your filters"}</p></div> : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{filtered.map((client) => <ClientCard key={client.id} client={client} />)}</div>}

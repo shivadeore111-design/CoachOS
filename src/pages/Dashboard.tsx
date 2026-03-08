@@ -18,7 +18,7 @@ function StatCard({ label, value, icon: Icon, color, sub }: { label: string; val
 }
 
 function LoadingSkeleton() {
-  return <div className="animate-pulse space-y-6 px-8 py-6"><div className="grid grid-cols-2 lg:grid-cols-4 gap-4">{[...Array(4)].map((_, i) => <div key={i} className="bg-white rounded-2xl border border-slate-100 p-5 h-24" />)}</div><div className="grid grid-cols-3 gap-6"><div className="col-span-2 bg-white rounded-2xl border border-slate-100 h-80" /><div className="bg-white rounded-2xl border border-slate-100 h-80" /></div></div>;
+  return <div className="animate-pulse space-y-6 px-4 sm:px-8 py-6"><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">{[...Array(4)].map((_, i) => <div key={i} className="bg-white rounded-2xl border border-slate-100 p-5 h-24" />)}</div><div className="grid grid-cols-3 gap-6"><div className="col-span-2 bg-white rounded-2xl border border-slate-100 h-80" /><div className="bg-white rounded-2xl border border-slate-100 h-80" /></div></div>;
 }
 
 export default function Dashboard() {
@@ -79,14 +79,14 @@ export default function Dashboard() {
   const coachFirstName = ((user?.user_metadata?.name as string | undefined) || user?.email || "Coach").split(/[\s@]/)[0];
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50">
-      <div className="bg-white border-b border-slate-100 px-8 py-5"><div className="flex items-center justify-between"><div><h1 className="text-xl font-bold text-slate-800">Hello, {coachFirstName} 👋</h1><p className="text-sm text-slate-400 mt-0.5">Here's your client overview for today</p></div><div className="flex items-center gap-2"><button onClick={() => { refresh(); void loadAlerts(); }} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors" title="Refresh data"><RefreshCw size={15} /></button></div></div></div>
+    <div className="flex-1 overflow-y-auto bg-slate-50 pb-6">
+      <div className="bg-white border-b border-slate-100 px-4 sm:px-8 py-5"><div className="flex items-center justify-between"><div><h1 className="text-lg sm:text-xl font-bold text-slate-800">Hello, {coachFirstName} 👋</h1><p className="text-sm text-slate-400 mt-0.5">Here's your client overview for today</p></div><div className="flex items-center gap-2"><button onClick={() => { refresh(); void loadAlerts(); }} className="w-11 h-11 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors flex items-center justify-center" title="Refresh data"><RefreshCw size={15} /></button></div></div></div>
 
-      {error && <div className="mx-8 mt-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3"><p className="text-sm text-red-600">{error}</p></div>}
+      {error && <div className="mx-4 sm:mx-8 mt-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3"><p className="text-sm text-red-600">{error}</p></div>}
 
       {loading ? <LoadingSkeleton /> : (
-        <div className="px-8 py-6 space-y-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="px-4 sm:px-8 py-6 space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard label="Total Clients" value={stats.total} icon={Users} color="bg-slate-700" sub="across all programs" />
             <StatCard label="Avg Adherence" value={`${stats.avg}%`} icon={Activity} color="bg-emerald-500" sub="last 30 days" />
             <StatCard label="At Risk" value={stats.atRisk} icon={AlertTriangle} color="bg-amber-500" sub="need attention" />
@@ -95,15 +95,15 @@ export default function Dashboard() {
 
           <div className="bg-white rounded-2xl border border-slate-100 p-5">
             <div className="flex items-center gap-2 mb-4"><TrendingDown size={16} className="text-indigo-500" /><h2 className="text-sm font-semibold text-slate-800">This Week's Snapshot</h2></div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-500">Declining clients</p><p className="text-xl font-bold text-red-500">{weeklySnapshot.decliningClients}</p></div>
-              <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-500">Top performer</p><p className="text-xl font-bold text-emerald-600">{weeklySnapshot.topPerformer?.name ?? "—"}</p><p className="text-xs text-slate-500">{weeklySnapshot.topPerformer ? `${weeklySnapshot.topPerformer.adherenceScore ?? 0}% adherence` : "No data"}</p></div>
-              <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-500">Longest streak</p><p className="text-xl font-bold text-orange-500">{weeklySnapshot.longestStreak?.name ?? "—"}</p><p className="text-xs text-slate-500">{weeklySnapshot.longestStreak ? `${weeklySnapshot.longestStreak.streak ?? 0} days` : "No data"}</p></div>
+            <div className="flex flex-wrap gap-3 text-sm">
+              <div className="bg-slate-50 rounded-xl p-3 flex-1 min-w-[180px]"><p className="text-slate-500">Declining clients</p><p className="text-xl font-bold text-red-500">{weeklySnapshot.decliningClients}</p></div>
+              <div className="bg-slate-50 rounded-xl p-3 flex-1 min-w-[180px]"><p className="text-slate-500">Top performer</p><p className="text-xl font-bold text-emerald-600">{weeklySnapshot.topPerformer?.name ?? "—"}</p><p className="text-xs text-slate-500">{weeklySnapshot.topPerformer ? `${weeklySnapshot.topPerformer.adherenceScore ?? 0}% adherence` : "No data"}</p></div>
+              <div className="bg-slate-50 rounded-xl p-3 flex-1 min-w-[180px]"><p className="text-slate-500">Longest streak</p><p className="text-xl font-bold text-orange-500">{weeklySnapshot.longestStreak?.name ?? "—"}</p><p className="text-xs text-slate-500">{weeklySnapshot.longestStreak ? `${weeklySnapshot.longestStreak.streak ?? 0} days` : "No data"}</p></div>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-6">
-            <div className="col-span-3 lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-5"><h2 className="text-sm font-semibold text-slate-800 mb-4">Client Adherence Scores</h2><div className="h-64"><AdherenceBarChart clients={clients} /></div></div>
+            <div className="col-span-3 lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-5"><h2 className="text-sm font-semibold text-slate-800 mb-4">Client Adherence Scores</h2><div className="h-[200px] sm:h-64"><AdherenceBarChart clients={clients} /></div></div>
             <div className="col-span-3 lg:col-span-1 bg-white rounded-2xl border border-slate-100 p-5"><div className="flex items-center gap-2 mb-4"><h2 className="text-sm font-semibold text-slate-800">AI Insights</h2><span className="text-xs bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full font-medium ml-auto">{aiInsights.length} alerts</span></div>{aiInsights.length === 0 ? <p className="text-xs text-slate-400">No alerts.</p> : <div className="space-y-2.5 max-h-64 overflow-y-auto">{aiInsights.map((insight, i) => <InsightCard key={i} insight={insight} onClientClick={(id) => navigate(`/clients/${id}`)} />)}</div>}</div>
           </div>
 
