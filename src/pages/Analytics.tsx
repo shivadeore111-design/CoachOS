@@ -55,27 +55,27 @@ export default function Analytics() {
   const interventionList = useMemo(() => [...enrichedClients].filter((c) => (c.adherenceScore ?? 0) < 70).sort((a, b) => (a.adherenceScore ?? 0) - (b.adherenceScore ?? 0)), [enrichedClients]);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50">
-      <div className="bg-white border-b border-slate-100 px-8 py-5">
+    <div className="flex-1 overflow-y-auto bg-slate-50 pb-6">
+      <div className="bg-white border-b border-slate-100 px-4 sm:px-8 py-5">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-slate-800">Analytics</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-slate-800">Analytics</h1>
             <p className="text-sm text-slate-400 mt-0.5">Deep dive into your coaching performance</p>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={refresh} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"><RefreshCw size={15} /></button>
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <button onClick={refresh} className="w-11 h-11 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors flex items-center justify-center"><RefreshCw size={15} /></button>
             <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl"><Calendar size={13} />Last 8 weeks</div>
           </div>
         </div>
       </div>
 
-      {error && <div className="mx-8 mt-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3"><p className="text-sm text-red-600">{error}</p></div>}
+      {error && <div className="mx-4 sm:mx-8 mt-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3"><p className="text-sm text-red-600">{error}</p></div>}
 
-      {loading ? <div className="p-8 text-sm text-slate-400">Loading analytics...</div> : (
-        <div className="px-8 py-6 space-y-6">
+      {loading ? <div className="p-4 sm:p-8 text-sm text-slate-400">Loading analytics...</div> : (
+        <div className="px-4 sm:px-8 py-6 space-y-6">
           <div className="bg-white rounded-2xl border border-slate-100 p-5">
             <div className="flex items-center gap-2 mb-4"><BarChart3 size={15} className="text-emerald-500" /><h2 className="text-sm font-semibold text-slate-800">Weekly completion trend (8 weeks)</h2></div>
-            <div className="grid grid-cols-8 gap-2">
+            <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
               {weeklyTrend.map((w) => (
                 <div key={w.label} className="text-center">
                   <div className="w-full bg-slate-100 rounded h-24 relative overflow-hidden">
@@ -118,12 +118,12 @@ export default function Analytics() {
 
           <div className="bg-white rounded-2xl border border-slate-100 p-5">
             <h2 className="text-sm font-semibold text-slate-800 mb-4">Per-client breakdown</h2>
-            <div className="h-64"><AdherenceBarChart clients={enrichedClients} /></div>
+            <div className="h-[200px] sm:h-64"><AdherenceBarChart clients={enrichedClients} /></div>
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-100 p-5">
             <h2 className="text-sm font-semibold text-slate-800 mb-4">Individual 8-week trend charts</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 overflow-x-auto">
               {enrichedClients.map((client) => {
                 const weeklyData = getWeeklyAdherenceData(client.workouts ?? [], client.program?.weekly_target ?? 3, 8);
                 return (
@@ -132,7 +132,7 @@ export default function Analytics() {
                       <p className="text-sm font-semibold text-slate-700">{client.name}</p>
                       <p className="text-xs text-slate-500">{weeklyData.length} weeks</p>
                     </div>
-                    <div className="h-48"><AdherenceTrendChart client={client} /></div>
+                    <div className="h-[200px] sm:h-48"><AdherenceTrendChart client={client} /></div>
                   </div>
                 );
               })}

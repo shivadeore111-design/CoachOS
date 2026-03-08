@@ -149,20 +149,20 @@ export default function Programs() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50">
-      <div className="bg-white border-b border-slate-100 px-8 py-5">
+    <div className="flex-1 overflow-y-auto bg-slate-50 pb-6">
+      <div className="bg-white border-b border-slate-100 px-4 sm:px-8 py-5">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-slate-800">Programs</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-slate-800">Programs</h1>
             <p className="text-sm text-slate-400 mt-0.5">Manage training programs and templates</p>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={loadData} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+            <button onClick={loadData} className="w-full sm:w-11 h-11 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors flex items-center justify-center">
               <RefreshCw size={15} />
             </button>
             <button
               onClick={handleCreateTemplate}
-              className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm"
+              className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 min-h-11 rounded-xl text-sm font-medium transition-colors shadow-sm w-full sm:w-auto"
             >
               <Plus size={15} />
               New Program
@@ -171,7 +171,7 @@ export default function Programs() {
         </div>
       </div>
 
-      <div className="px-8 py-6 space-y-8">
+      <div className="px-4 sm:px-8 py-6 space-y-8">
         {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3"><p className="text-sm text-red-600">{error}</p></div>}
 
         <section>
@@ -209,7 +209,7 @@ export default function Programs() {
               <Target size={16} className="text-blue-500" />
               <h2 className="text-sm font-semibold text-slate-700">Performance by Program Type</h2>
             </div>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {Object.entries(programStats).map(([type, stats]) => (
                 <div key={type} className="bg-white rounded-2xl border border-slate-100 p-4">
                   <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${getProgramTypeColor(type as ProgramType)}`}>{type.replace("_", " ")}</span>
@@ -234,7 +234,7 @@ export default function Programs() {
                 </div>
                 <h3 className="text-sm font-semibold text-slate-800 mb-1">{template.name}</h3>
                 <p className="text-xs text-slate-400 mb-3 leading-relaxed">{template.description || "Template program"}</p>
-                <button className={`w-full mt-4 py-2 rounded-xl text-xs font-medium transition-all ${activeTemplate === template.id ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-600"}`} onClick={(e) => { e.stopPropagation(); handleUseTemplate(template); }}>
+                <button className={`w-full mt-4 min-h-11 rounded-xl text-xs font-medium transition-all ${activeTemplate === template.id ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-600"}`} onClick={(e) => { e.stopPropagation(); handleUseTemplate(template); }}>
                   {activeTemplate === template.id ? "✓ Selected" : "Use Template"}
                 </button>
               </div>
@@ -254,8 +254,8 @@ export default function Programs() {
               {clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}
             </select>
             <div className="mt-6 flex justify-end gap-2">
-              <button onClick={() => { if (assigningTemplate) return; setTemplateToAssign(null); setSelectedClientId(""); }} className="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">Cancel</button>
-              <button onClick={handleConfirmTemplateAssignment} disabled={assigningTemplate || !selectedClientId} className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">{assigningTemplate ? "Assigning..." : "Confirm"}</button>
+              <button onClick={() => { if (assigningTemplate) return; setTemplateToAssign(null); setSelectedClientId(""); }} className="px-4 min-h-11 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">Cancel</button>
+              <button onClick={handleConfirmTemplateAssignment} disabled={assigningTemplate || !selectedClientId} className="px-4 min-h-11 rounded-xl text-sm font-medium text-white bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">{assigningTemplate ? "Assigning..." : "Confirm"}</button>
             </div>
           </div>
         </div>

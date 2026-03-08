@@ -102,7 +102,7 @@ export default function Settings() {
               <textarea value={profile.bio} onChange={(e) => setProfile((p) => ({ ...p, bio: e.target.value }))} rows={4} className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl" />
             </div>
           </div>
-          <button onClick={saveProfile} disabled={saving} className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm font-medium">{saving ? "Saving..." : "Save Changes"}</button>
+          <button onClick={saveProfile} disabled={saving} className="px-4 min-h-11 bg-emerald-500 text-white rounded-xl text-sm font-medium">{saving ? "Saving..." : "Save Changes"}</button>
         </div>
       );
     }
@@ -113,11 +113,11 @@ export default function Settings() {
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
             <p className="text-xs text-slate-500">Current plan</p>
             <p className="text-lg font-bold text-slate-800 capitalize">{profile.plan}</p>
-            <button onClick={() => navigate("/pricing")} className="mt-3 px-4 py-2 border border-slate-200 rounded-xl text-sm bg-white">Manage</button>
+            <button onClick={() => navigate("/pricing")} className="mt-3 px-4 min-h-11 border border-slate-200 rounded-xl text-sm bg-white">Manage</button>
           </div>
           <div className="bg-white rounded-2xl border border-red-200 p-4">
             <h2 className="text-sm font-semibold text-red-700 mb-2">Danger Zone</h2>
-            <button onClick={() => setShowDeleteModal(true)} className="px-4 py-2 bg-red-600 text-white rounded-xl text-sm">Delete Account</button>
+            <button onClick={() => setShowDeleteModal(true)} className="px-4 min-h-11 bg-red-600 text-white rounded-xl text-sm">Delete Account</button>
           </div>
         </div>
       );
@@ -127,22 +127,22 @@ export default function Settings() {
   }, [activeTab, navigate, profile, saving]);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50 p-8 space-y-6">
+    <div className="flex-1 overflow-y-auto bg-slate-50 px-4 sm:px-8 py-6 pb-6 space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-slate-800">Settings</h1>
+        <h1 className="text-lg sm:text-xl font-bold text-slate-800">Settings</h1>
         <p className="text-sm text-slate-400">Manage your profile, account, and billing</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <aside className="bg-white rounded-2xl border border-slate-100 p-3 h-fit">
-          {tabs.map((tab) => (
-            <button key={tab.key} onClick={() => setActiveTab(tab.key)} className={`w-full text-left px-3 py-2 rounded-xl text-sm mb-1 ${activeTab === tab.key ? "bg-slate-800 text-white" : "text-slate-600 hover:bg-slate-100"}`}>
+        <aside className="bg-white rounded-2xl border border-slate-100 p-3 h-fit overflow-x-auto">
+          <div className="flex lg:block gap-2 lg:gap-0">{tabs.map((tab) => (
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)} className={`w-full lg:w-auto lg:min-w-0 min-w-[130px] text-left px-3 min-h-11 rounded-xl text-sm mb-1 lg:mb-1 ${activeTab === tab.key ? "bg-slate-800 text-white" : "text-slate-600 hover:bg-slate-100"}`}>
               {tab.label}
             </button>
-          ))}
+          ))}</div>
         </aside>
 
-        <section className="lg:col-span-3 bg-white rounded-2xl border border-slate-100 p-6">
+        <section className="lg:col-span-3 bg-white rounded-2xl border border-slate-100 p-4 sm:p-6">
           <h2 className="text-sm font-semibold text-slate-800 mb-4">{tabs.find((t) => t.key === activeTab)?.label}</h2>
           {content}
         </section>
@@ -155,8 +155,8 @@ export default function Settings() {
             <p className="text-sm text-slate-500 mb-3">Type DELETE to confirm.</p>
             <input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl mb-4" />
             <div className="flex justify-end gap-2">
-              <button onClick={() => setShowDeleteModal(false)} className="px-3 py-2 text-sm">Cancel</button>
-              <button onClick={handleDelete} disabled={confirmText !== "DELETE"} className="px-3 py-2 bg-red-600 disabled:bg-red-300 text-white rounded-lg text-sm">Delete</button>
+              <button onClick={() => setShowDeleteModal(false)} className="px-3 min-h-11 text-sm">Cancel</button>
+              <button onClick={handleDelete} disabled={confirmText !== "DELETE"} className="px-3 min-h-11 bg-red-600 disabled:bg-red-300 text-white rounded-lg text-sm">Delete</button>
             </div>
           </div>
         </div>
