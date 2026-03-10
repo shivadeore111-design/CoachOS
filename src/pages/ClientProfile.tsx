@@ -213,9 +213,9 @@ export default function ClientProfile() {
   const momentumIcon = getMomentumIcon(enrichedClient.momentum!);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50">
+    <div className="flex-1 overflow-y-auto bg-slate-50 pb-6">
       {/* Header */}
-      <div className="bg-white border-b border-slate-100 px-8 py-5">
+      <div className="bg-white border-b border-slate-100 px-8 px-4 sm:px-6 py-5">
         <button
           onClick={() => navigate("/clients")}
           className="flex items-center gap-2 text-slate-400 hover:text-slate-600 text-sm mb-4 transition-colors"
@@ -253,14 +253,14 @@ export default function ClientProfile() {
                   toast.success("Profile link copied!")
                 );
               }}
-              className="flex items-center gap-2 border border-slate-200 hover:border-slate-300 text-slate-600 px-3 py-2 rounded-xl text-xs font-medium transition-colors"
+              className="flex items-center gap-2 border border-slate-200 hover:border-slate-300 text-slate-600 px-3 py-2 min-h-[44px] rounded-xl text-xs font-medium transition-colors"
             >
               <Share2 size={13} />
               Share Report
             </button>
             <button
               onClick={() => setShowLogForm(!showLogForm)}
-              className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-medium transition-colors shadow-sm"
+              className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 min-h-[44px] rounded-xl text-xs font-medium transition-colors shadow-sm"
             >
               <Plus size={13} />
               Log Workout
@@ -269,7 +269,7 @@ export default function ClientProfile() {
         </div>
       </div>
 
-      <div className="px-8 py-6 space-y-6">
+      <div className="px-8 px-4 sm:px-6 py-6 space-y-6">
         {/* Log Workout Form */}
         {showLogForm && (
           <div className="bg-white rounded-2xl border border-emerald-200 p-5 shadow-sm">
@@ -277,14 +277,14 @@ export default function ClientProfile() {
               <Plus size={15} className="text-emerald-500" />
               Log Workout for {enrichedClient.name}
             </h3>
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-2 grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="text-xs text-slate-500 font-medium block mb-1.5">Date</label>
                 <input
                   type="date"
                   value={logDate}
                   onChange={(e) => setLogDate(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full px-3 py-2 min-h-[44px] text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
               <div>
@@ -294,7 +294,7 @@ export default function ClientProfile() {
                     <button
                       key={s}
                       onClick={() => setLogStatus(s)}
-                      className={`flex-1 py-2 text-xs font-medium rounded-xl border transition-colors ${
+                      className={`flex-1 py-2 min-h-[44px] text-xs font-medium rounded-xl border transition-colors ${
                         logStatus === s
                           ? s === "completed"
                             ? "bg-emerald-500 text-white border-emerald-500"
@@ -316,7 +316,7 @@ export default function ClientProfile() {
                     <select
                       value={logType}
                       onChange={(e) => setLogType(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none bg-white"
+                      className="w-full px-3 py-2 min-h-[44px] text-sm border border-slate-200 rounded-xl focus:outline-none bg-white"
                     >
                       {[
                         "Strength",
@@ -358,7 +358,7 @@ export default function ClientProfile() {
                 onChange={(e) => setLogNote(e.target.value)}
                 placeholder="Session notes, client feedback..."
                 rows={2}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none"
+                className="w-full px-3 py-2 min-h-[44px] text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none"
               />
             </div>
             <div className="flex justify-end gap-2">
@@ -395,7 +395,7 @@ export default function ClientProfile() {
           <select
             value={client?.program_id || ""}
             onChange={(e) => handleAssignProgram(e.target.value)}
-            className="w-full max-w-sm px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none bg-white"
+            className="w-full max-w-sm px-3 py-2 min-h-[44px] text-sm border border-slate-200 rounded-xl focus:outline-none bg-white"
           >
             <option value="">Assign Program</option>
             {programs.map((program) => (
@@ -406,7 +406,7 @@ export default function ClientProfile() {
           </select>
         </div>
 
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-4 grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center gap-3">
             <AdherenceScore score={enrichedClient.adherenceScore!} size="md" />
             <div>
@@ -445,24 +445,26 @@ export default function ClientProfile() {
 
         <div className="bg-white rounded-2xl border border-slate-100 p-4">
           <h3 className="text-sm font-semibold text-slate-800 mb-3">30-Day Workout Calendar</h3>
-          <div className="grid grid-cols-10 gap-2">
-            {workoutCalendar.map((day) => (
-              <div key={day.dateKey} className="text-center">
-                <div
-                  title={day.dateKey}
-                  className={`w-6 h-6 rounded-md mx-auto ${
-                    day.status === "completed"
-                      ? "bg-emerald-500"
-                      : day.status === "missed"
-                      ? "bg-red-400"
-                      : day.status === "scheduled"
-                      ? "bg-slate-300"
-                      : "bg-slate-100"
-                  }`}
-                />
-                <p className="text-[10px] text-slate-400 mt-1">{day.day}</p>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <div className="grid grid-cols-10 gap-2 min-w-[640px]">
+              {workoutCalendar.map((day) => (
+                <div key={day.dateKey} className="text-center">
+                  <div
+                    title={day.dateKey}
+                    className={`w-6 h-6 rounded-md mx-auto ${
+                      day.status === "completed"
+                        ? "bg-emerald-500"
+                        : day.status === "missed"
+                        ? "bg-red-400"
+                        : day.status === "scheduled"
+                        ? "bg-slate-300"
+                        : "bg-slate-100"
+                    }`}
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">{day.day}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -485,7 +487,7 @@ export default function ClientProfile() {
 
         {/* Tab Content */}
         {activeTab === "overview" && (
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="col-span-2 bg-white rounded-2xl border border-slate-100 p-5">
               <h3 className="text-sm font-semibold text-slate-800 mb-4">
                 8-Week Adherence Trend

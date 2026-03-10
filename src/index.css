@@ -67,3 +67,7 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
   border: none;
 }
+
+button {
+  min-height: 44px;
+}
