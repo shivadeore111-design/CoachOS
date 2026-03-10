@@ -16,18 +16,6 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-async function ensureCoachProfile(user: User) {
-  if (!user.id || !user.email) return;
-  await supabase.from("coaches").upsert(
-    {
-      id: user.id,
-      email: user.email,
-      name: user.user_metadata?.name ?? user.email,
-    },
-    { onConflict: "id" }
-  );
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
     user: null,
@@ -42,14 +30,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     let mounted = true;
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
-      if (session?.user) await ensureCoachProfile(session.user);
       setState({ user: session?.user ?? null, session, loading: false });
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) await ensureCoachProfile(session.user);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
       setState({ user: session?.user ?? null, session, loading: false });
     });
