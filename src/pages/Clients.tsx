@@ -77,7 +77,7 @@ export default function Clients() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-50 pb-6">
-      <div className="bg-white border-b border-slate-100 px-4 sm:px-8 py-5">
+      <div className="bg-white border-b border-slate-100 px-4 sm:px-8 sm:px-6 py-5">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg sm:text-xl font-bold text-slate-800">Clients</h1>
@@ -93,12 +93,12 @@ export default function Clients() {
         </div>
       </div>
 
-      <div className="px-4 sm:px-8 py-6">
+      <div className="px-4 sm:px-8 sm:px-6 py-6">
         
         {!canAddClient && <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">Upgrade to add more clients.</div>}
-        <div className="flex items-center gap-3 mb-6 flex-wrap">
+        <div className="flex items-center gap-3 mb-6 flex-wrap flex-col sm:flex-row gap-2">
           <div className="relative w-full sm:flex-1 min-w-[200px] sm:max-w-sm"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search clients..." className="w-full pl-9 pr-4 min-h-11 text-sm border border-slate-200 rounded-xl bg-white" /></div>
-          <div className="w-full sm:w-auto overflow-x-auto">
+          <div className="w-full sm:w-auto overflow-x-auto whitespace-nowrap pb-1">
             <div className="flex items-center gap-2 min-w-max">
               {(["all", "good", "risk", "critical"] as const).map((f) => <button key={f} onClick={() => setFilter(f)} className={`px-3 min-h-11 rounded-full text-xs font-medium border whitespace-nowrap ${filter === f ? "bg-slate-800 text-white" : "bg-white text-slate-500 border-slate-200"}`}>{f === "all" ? `All (${counts.all})` : f === "good" ? `On Track (${counts.good})` : f === "risk" ? `At Risk (${counts.risk})` : `Critical (${counts.critical})`}</button>)}
             </div>
