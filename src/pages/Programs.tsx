@@ -13,18 +13,9 @@ import { getProgramTypeColor } from "../lib/utils";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import type { Program, ProgramType } from "../lib/types";
+import { SkeletonPage } from "../components/Skeleton";
 
 type ActiveProgram = Program & { client: { id: string; name: string; goal: string } | null };
-
-function LoadingSkeleton() {
-  return (
-    <div className="animate-pulse grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {[...Array(6)].map((_, i) => (
-        <div key={i} className="bg-white rounded-2xl border border-slate-100 h-48" />
-      ))}
-    </div>
-  );
-}
 
 export default function Programs() {
   const navigate = useNavigate();
@@ -172,7 +163,7 @@ export default function Programs() {
       </div>
 
       <div className="px-4 sm:px-8 py-6 space-y-8">
-        {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3"><p className="text-sm text-red-600">{error}</p></div>}
+        {error && <div className="m-6 bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center justify-between"><p className="text-red-400 text-sm">Failed to load data.</p><button onClick={() => window.location.reload()} className="text-red-400 text-sm underline hover:text-red-300">Try again</button></div>}
 
         <section>
           <div className="flex items-center gap-2 mb-4">
@@ -181,7 +172,7 @@ export default function Programs() {
             <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full ml-1">{activePrograms.length}</span>
           </div>
 
-          {loading ? <LoadingSkeleton /> : (
+          {loading ? <SkeletonPage /> : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {activePrograms.map((prog) => (
                 <div key={prog.id} className="bg-white rounded-2xl border border-slate-100 p-5 hover:shadow-md hover:border-emerald-200 transition-all cursor-pointer group" onClick={() => prog.client && navigate(`/clients/${prog.client.id}`)}>

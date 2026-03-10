@@ -12,17 +12,16 @@ import { rankByDropoutRisk } from "../lib/riskEngine";
 import { generateInsights } from "../lib/insights";
 import type { Alert } from "../types";
 import type { Insight } from "../lib/types";
+import { SkeletonPage } from "../components/Skeleton";
+import { usePreload } from "../hooks/usePreload";
 
 function StatCard({ label, value, icon: Icon, color, sub }: { label: string; value: string | number; icon: React.ElementType; color: string; sub?: string }) {
   return <div className="bg-white rounded-2xl border border-slate-100 p-5 flex items-start gap-4"><div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}><Icon size={20} className="text-white" /></div><div><p className="text-xs text-slate-400 font-medium uppercase tracking-wide">{label}</p><p className="text-2xl font-bold text-slate-800 mt-0.5">{value}</p>{sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}</div></div>;
 }
 
-function LoadingSkeleton() {
-  return <div className="animate-pulse space-y-6 px-4 sm:px-8 py-6"><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">{[...Array(4)].map((_, i) => <div key={i} className="bg-white rounded-2xl border border-slate-100 p-5 h-24" />)}</div><div className="grid grid-cols-3 gap-6"><div className="col-span-2 bg-white rounded-2xl border border-slate-100 h-80" /><div className="bg-white rounded-2xl border border-slate-100 h-80" /></div></div>;
-}
-
 export default function Dashboard() {
   const navigate = useNavigate();
+  usePreload();
   const { user } = useAuth();
   const { clients, loading, error, refresh } = useClients(user?.id ?? "");
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -82,9 +81,7 @@ export default function Dashboard() {
     <div className="flex-1 overflow-y-auto bg-slate-50 pb-6">
       <div className="bg-white border-b border-slate-100 px-4 sm:px-8 py-5"><div className="flex items-center justify-between"><div><h1 className="text-lg sm:text-xl font-bold text-slate-800">Hello, {coachFirstName} 👋</h1><p className="text-sm text-slate-400 mt-0.5">Here's your client overview for today</p></div><div className="flex items-center gap-2"><button onClick={() => { refresh(); void loadAlerts(); }} className="w-11 h-11 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors flex items-center justify-center" title="Refresh data"><RefreshCw size={15} /></button></div></div></div>
 
-      {error && <div className="mx-4 sm:mx-8 mt-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3"><p className="text-sm text-red-600">{error}</p></div>}
-
-      {loading ? <LoadingSkeleton /> : (
+      {error ? <div className="m-6 bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center justify-between"><p className="text-red-400 text-sm">Failed to load data.</p><button onClick={() => window.location.reload()} className="text-red-400 text-sm underline hover:text-red-300">Try again</button></div> : loading ? <SkeletonPage /> : (
         <div className="px-4 sm:px-8 py-6 space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard label="Total Clients" value={stats.total} icon={Users} color="bg-slate-700" sub="across all programs" />
