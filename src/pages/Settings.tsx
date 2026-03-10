@@ -76,7 +76,7 @@ export default function Settings() {
     if (activeTab === "profile") {
       return (
         <div className="space-y-4 max-w-2xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-500 mb-1">Full Name</label>
               <input value={profile.name} onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))} className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl" />
@@ -127,15 +127,15 @@ export default function Settings() {
   }, [activeTab, navigate, profile, saving]);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50 px-4 sm:px-8 py-6 pb-6 space-y-6">
+    <div className="flex-1 overflow-y-auto bg-slate-50 px-4 sm:px-8 sm:px-6 py-6 pb-6 space-y-6">
       <div>
         <h1 className="text-lg sm:text-xl font-bold text-slate-800">Settings</h1>
         <p className="text-sm text-slate-400">Manage your profile, account, and billing</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <aside className="bg-white rounded-2xl border border-slate-100 p-3 h-fit overflow-x-auto">
-          <div className="flex lg:block gap-2 lg:gap-0">{tabs.map((tab) => (
+          <div className="flex lg:block gap-2 lg:gap-0 whitespace-nowrap">{tabs.map((tab) => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)} className={`w-full lg:w-auto lg:min-w-0 min-w-[130px] text-left px-3 min-h-11 rounded-xl text-sm mb-1 lg:mb-1 ${activeTab === tab.key ? "bg-slate-800 text-white" : "text-slate-600 hover:bg-slate-100"}`}>
               {tab.label}
             </button>

@@ -22,13 +22,16 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen overflow-hidden bg-slate-50" style={{ fontFamily: "'Inter', sans-serif" }}>
       <Sidebar mobileOpen={mobileSidebarOpen} onClose={() => setMobileSidebarOpen(false)} />
       <main className="relative flex-1 flex flex-col overflow-hidden">
-        <button
-          onClick={() => setMobileSidebarOpen(true)}
-          className="md:hidden absolute top-3 left-3 z-30 w-11 h-11 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-700"
-          aria-label="Open sidebar"
-        >
-          <Menu size={20} />
-        </button>
+        <div className="lg:hidden h-14 bg-slate-900 border-b border-slate-700/50 flex items-center justify-between px-2 relative">
+          <button
+            onClick={() => setMobileSidebarOpen(true)}
+            className="lg:hidden absolute left-2 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-700 text-slate-400 hover:text-white p-2 bg-transparent border-transparent shadow-none"
+            aria-label="Open sidebar"
+          >
+            <Menu size={20} />
+          </button>
+          <div className="w-full text-center text-white font-bold">CoachOS</div>
+        </div>
         {children}
       </main>
     </div>

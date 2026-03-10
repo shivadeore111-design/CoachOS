@@ -57,7 +57,7 @@ export default function Analytics() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-50 pb-6">
-      <div className="bg-white border-b border-slate-100 px-4 sm:px-8 py-5">
+      <div className="bg-white border-b border-slate-100 px-4 sm:px-8 sm:px-6 py-5">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg sm:text-xl font-bold text-slate-800">Analytics</h1>
@@ -65,13 +65,13 @@ export default function Analytics() {
           </div>
           <div className="flex items-center gap-2 flex-wrap justify-end">
             <button onClick={refresh} className="w-11 h-11 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors flex items-center justify-center"><RefreshCw size={15} /></button>
-            <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl"><Calendar size={13} />Last 8 weeks</div>
+            <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-50 border border-slate-200 px-3 py-2 min-h-[44px] rounded-xl"><Calendar size={13} />Last 8 weeks</div>
           </div>
         </div>
       </div>
 
       {error ? <div className="m-6 bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center justify-between"><p className="text-red-400 text-sm">Failed to load data.</p><button onClick={() => window.location.reload()} className="text-red-400 text-sm underline hover:text-red-300">Try again</button></div> : loading ? <SkeletonPage /> : (
-        <div className="px-4 sm:px-8 py-6 space-y-6">
+        <div className="px-4 sm:px-8 sm:px-6 py-6 space-y-6">
           <div className="bg-white rounded-2xl border border-slate-100 p-5">
             <div className="flex items-center gap-2 mb-4"><BarChart3 size={15} className="text-emerald-500" /><h2 className="text-sm font-semibold text-slate-800">Weekly completion trend (8 weeks)</h2></div>
             <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
@@ -87,7 +87,7 @@ export default function Analytics() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-5">
               <h2 className="text-sm font-semibold text-slate-800 mb-4">Workout Breakdown</h2>
               <div className="space-y-3">
@@ -117,7 +117,7 @@ export default function Analytics() {
 
           <div className="bg-white rounded-2xl border border-slate-100 p-5">
             <h2 className="text-sm font-semibold text-slate-800 mb-4">Per-client breakdown</h2>
-            <div className="h-[200px] sm:h-64"><AdherenceBarChart clients={enrichedClients} /></div>
+            <div className="overflow-x-auto"><div className="h-48 h-[200px] sm:h-64"><AdherenceBarChart clients={enrichedClients} /></div></div>
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-100 p-5">

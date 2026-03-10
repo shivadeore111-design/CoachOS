@@ -141,8 +141,8 @@ export default function Programs() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-50 pb-6">
-      <div className="bg-white border-b border-slate-100 px-4 sm:px-8 py-5">
-        <div className="flex items-center justify-between">
+      <div className="bg-white border-b border-slate-100 px-4 sm:px-8 sm:px-6 py-5">
+        <div className="flex items-center justify-between flex-col sm:flex-row gap-3">
           <div>
             <h1 className="text-lg sm:text-xl font-bold text-slate-800">Programs</h1>
             <p className="text-sm text-slate-400 mt-0.5">Manage training programs and templates</p>
@@ -162,7 +162,7 @@ export default function Programs() {
         </div>
       </div>
 
-      <div className="px-4 sm:px-8 py-6 space-y-8">
+      <div className="px-4 sm:px-8 sm:px-6 py-6 space-y-8">
         {error && <div className="m-6 bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center justify-between"><p className="text-red-400 text-sm">Failed to load data.</p><button onClick={() => window.location.reload()} className="text-red-400 text-sm underline hover:text-red-300">Try again</button></div>}
 
         <section>

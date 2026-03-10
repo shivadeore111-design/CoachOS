@@ -61,21 +61,21 @@ export default function Leaderboard() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50">
-      <div className="bg-white border-b border-slate-100 px-8 py-5">
+    <div className="flex-1 overflow-y-auto bg-slate-50 pb-6">
+      <div className="bg-white border-b border-slate-100 px-8 px-4 sm:px-6 py-5">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-slate-800">Leaderboard</h1>
             <p className="text-sm text-slate-400 mt-0.5">Client rankings by adherence score</p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl">
+          <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-50 border border-slate-200 px-3 py-2 min-h-[44px] rounded-xl">
             <Trophy size={13} className="text-amber-500" />
             Updated daily
           </div>
         </div>
       </div>
 
-      <div className="px-8 py-6 space-y-6">
+      <div className="px-8 px-4 sm:px-6 py-6 space-y-6">
         <div className="bg-white rounded-2xl border border-slate-100 px-5 py-4">
           <div className="flex items-center gap-6 flex-wrap">
             <div className="flex items-center gap-2">
@@ -167,7 +167,7 @@ export default function Leaderboard() {
               <p className="text-xs text-slate-300 mt-1">Add clients to see the leaderboard</p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-50">
+            <div className="overflow-x-auto"><div className="divide-y divide-slate-50 min-w-[680px]">
               {leaderboard.map((entry, index) => {
                 const riskLevel = entry.status === "critical" ? "critical" : entry.status === "at_risk" ? "risk" : "good";
                 return (
@@ -205,7 +205,7 @@ export default function Leaderboard() {
                   </div>
                 );
               })}
-            </div>
+            </div></div>
           )}
         </div>
       </div>
