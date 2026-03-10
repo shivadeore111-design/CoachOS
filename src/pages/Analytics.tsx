@@ -5,6 +5,7 @@ import { getClients, getWorkoutsForCoach } from "../lib/api";
 import { AdherenceBarChart, AdherenceTrendChart } from "../components/Charts";
 import { calculateAdherence, getWeeklyAdherenceData } from "../lib/adherence";
 import type { Client, Workout } from "../lib/types";
+import { SkeletonPage } from "../components/Skeleton";
 
 export default function Analytics() {
   const { user } = useAuth();
@@ -69,9 +70,7 @@ export default function Analytics() {
         </div>
       </div>
 
-      {error && <div className="mx-4 sm:mx-8 mt-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3"><p className="text-sm text-red-600">{error}</p></div>}
-
-      {loading ? <div className="p-4 sm:p-8 text-sm text-slate-400">Loading analytics...</div> : (
+      {error ? <div className="m-6 bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center justify-between"><p className="text-red-400 text-sm">Failed to load data.</p><button onClick={() => window.location.reload()} className="text-red-400 text-sm underline hover:text-red-300">Try again</button></div> : loading ? <SkeletonPage /> : (
         <div className="px-4 sm:px-8 py-6 space-y-6">
           <div className="bg-white rounded-2xl border border-slate-100 p-5">
             <div className="flex items-center gap-2 mb-4"><BarChart3 size={15} className="text-emerald-500" /><h2 className="text-sm font-semibold text-slate-800">Weekly completion trend (8 weeks)</h2></div>

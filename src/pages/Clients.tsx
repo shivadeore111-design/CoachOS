@@ -8,6 +8,7 @@ import AddClientModal from "../components/AddClientModal";
 import toast from "react-hot-toast";
 import type { RiskLevel } from "../lib/types";
 import type { Program } from "../lib/types";
+import { SkeletonPage } from "../components/Skeleton";
 
 const planBadgeStyles: Record<string, string> = {
   free: "bg-slate-200 text-slate-700",
@@ -93,7 +94,7 @@ export default function Clients() {
       </div>
 
       <div className="px-4 sm:px-8 py-6">
-        {error && <div className="mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3"><p className="text-sm text-red-600">{error}</p></div>}
+        
         {!canAddClient && <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">Upgrade to add more clients.</div>}
         <div className="flex items-center gap-3 mb-6 flex-wrap">
           <div className="relative w-full sm:flex-1 min-w-[200px] sm:max-w-sm"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search clients..." className="w-full pl-9 pr-4 min-h-11 text-sm border border-slate-200 rounded-xl bg-white" /></div>
@@ -105,7 +106,7 @@ export default function Clients() {
           <div className="flex items-center gap-2 ml-0 sm:ml-auto w-full sm:w-auto"><SlidersHorizontal size={14} className="text-slate-400" /><select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="text-xs border border-slate-200 rounded-lg px-2 min-h-11 bg-white text-slate-600 w-full sm:w-auto"><option value="score">Sort by Score</option><option value="name">Sort by Name</option><option value="streak">Sort by Streak</option></select></div>
         </div>
 
-        {loading ? <div className="text-sm text-slate-400">Loading clients...</div> : filtered.length === 0 ? <div className="text-center py-16"><Users size={40} className="mx-auto text-slate-200 mb-3" /><p className="text-slate-400 text-sm">{clients.length === 0 ? "No clients yet" : "No clients match your filters"}</p></div> : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{filtered.map((client) => <ClientCard key={client.id} client={client} />)}</div>}
+        {error ? <div className="m-6 bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center justify-between"><p className="text-red-400 text-sm">Failed to load data.</p><button onClick={() => window.location.reload()} className="text-red-400 text-sm underline hover:text-red-300">Try again</button></div> : loading ? <SkeletonPage /> : filtered.length === 0 ? <div className="text-center py-16"><Users size={40} className="mx-auto text-slate-200 mb-3" /><p className="text-slate-400 text-sm">{clients.length === 0 ? "No clients yet" : "No clients match your filters"}</p></div> : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{filtered.map((client) => <ClientCard key={client.id} client={client} />)}</div>}
       </div>
 
       {showAddModal && <AddClientModal onClose={() => setShowAddModal(false)} onSubmit={handleAddClient} programs={programs} />}
